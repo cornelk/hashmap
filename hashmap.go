@@ -2,12 +2,13 @@ package hashmap
 
 import (
 	"reflect"
+	"strconv"
 	"sync"
 	"sync/atomic"
 	"unsafe"
 )
 
-const intSizeBytes = 4 << (^uint(0) >> 63)
+const intSizeBytes = strconv.IntSize >> 3
 
 type (
 	hashMapEntry struct {
