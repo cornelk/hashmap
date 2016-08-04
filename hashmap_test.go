@@ -36,8 +36,7 @@ func TestInsert(t *testing.T) {
 func TestGet(t *testing.T) {
 	m := New()
 
-	// Get a missing element.
-	val, ok := m.Get(1)
+	val, ok := m.Get(1) // Get a missing element.
 
 	if ok == true {
 		t.Error("ok should be false when item is missing from map.")
@@ -73,6 +72,7 @@ func TestRemove(t *testing.T) {
 
 	monkey := Animal{"monkey"}
 	m.Set(1, monkey)
+	m.Set(1, monkey)
 
 	m.Remove(1)
 
@@ -81,17 +81,14 @@ func TestRemove(t *testing.T) {
 	}
 
 	temp, ok := m.Get(1)
-
 	if ok != false {
 		t.Error("Expecting ok to be false for missing items.")
 	}
-
 	if temp != nil {
 		t.Error("Expecting item to be nil after its removal.")
 	}
 
-	// Remove a none existing element.
-	m.Remove(2)
+	m.Remove(2) // Remove a none existing element.
 }
 
 func TestCount(t *testing.T) {
