@@ -2,18 +2,14 @@ package hashmap
 
 import (
 	"reflect"
-	"strconv"
 	"sync"
 	"sync/atomic"
 	"unsafe"
 )
 
-const intSizeBytes = strconv.IntSize >> 3
-
 type (
 	hashMapEntry struct {
-		key1  uint64
-		key2  uint64
+		key   uint64
 		value interface{}
 	}
 
@@ -51,13 +47,13 @@ func (m *HashMap) Count() uint64 {
 }
 
 // Get retrieves an element from map under given key.
-func (m *HashMap) Get(key1 uint64, key2 uint64) (interface{}, bool) {
+func (m *HashMap) Get(key uint64) (interface{}, bool) {
 	mapData := (*hashMapData)(atomic.LoadPointer(&m.mapData))
-	index := key1 & mapData.andMask
+	index := key & mapData.andMask
 	sliceDataIndexPointer := (*unsafe.Pointer)(unsafe.Pointer(uintptr(mapData.data) + uintptr(index*intSizeBytes)))
 	entry := (*hashMapEntry)(atomic.LoadPointer(sliceDataIndexPointer))
 
-	if entry == nil || key1 != entry.key1 || key2 != entry.key2 {
+	if entry == nil || key != entry.key {
 		return nil, false
 	}
 
@@ -65,17 +61,17 @@ func (m *HashMap) Get(key1 uint64, key2 uint64) (interface{}, bool) {
 }
 
 // Set sets the given value under the specified key.
-func (m *HashMap) Set(key1 uint64, key2 uint64, value interface{}) {
+func (m *HashMap) Set(key uint64, value interface{}) {
 	m.Lock()
 	defer m.Unlock()
 
 	mapData := (*hashMapData)(atomic.LoadPointer(&m.mapData))
-	index := key1 & mapData.andMask
+	index := key & mapData.andMask
 	sliceDataIndexPointer := (*unsafe.Pointer)(unsafe.Pointer(uintptr(mapData.data) + uintptr(index*intSizeBytes)))
 	entry := (*hashMapEntry)(atomic.LoadPointer(sliceDataIndexPointer))
 
 	if entry != nil { // space in slice is used?
-		if key1 == entry.key1 && key2 == entry.key2 { // slice entry keys match what we are looking for?
+		if key == entry.key { // slice entry keys match what we are looking for?
 			if value == entry.value { // trying to set the same key and value?
 				return
 			}
@@ -85,20 +81,19 @@ func (m *HashMap) Set(key1 uint64, key2 uint64, value interface{}) {
 
 		for {
 			existingEntry := (*hashMapEntry)(atomic.LoadPointer(sliceDataIndexPointer))
-			if existingEntry == nil || existingEntry.key1 == key1 { // last resizing operation fixed the collision?
+			if existingEntry == nil || existingEntry.key == key { // last resizing operation fixed the collision?
 				break
 			}
 			m.Resize(mapData.size + 1)
 
 			mapData = (*hashMapData)(atomic.LoadPointer(&m.mapData))                                                       // update pointer
-			index = key1 & mapData.andMask                                                                                 // update index key
+			index = key & mapData.andMask                                                                                  // update index key
 			sliceDataIndexPointer = (*unsafe.Pointer)(unsafe.Pointer(uintptr(mapData.data) + uintptr(index*intSizeBytes))) // update index pointer
 		}
 	}
 
 	entry = &hashMapEntry{ // create a new instance in the update case as well, updating value would not be thread-safe
-		key1:  key1,
-		key2:  key2,
+		key:   key,
 		value: value,
 	}
 
@@ -107,21 +102,20 @@ func (m *HashMap) Set(key1 uint64, key2 uint64, value interface{}) {
 }
 
 // Remove removes an element from the map.
-func (m *HashMap) Remove(key1 uint64, key2 uint64) {
-	m.Lock()
+func (m *HashMap) Remove(key uint64) {
+	m.Lock() // lock before getting the value to make sure to work on the latest data slice
 	defer m.Unlock()
 
-	_, exists := m.Get(key1, key2)
-	if !exists {
+	mapData := (*hashMapData)(atomic.LoadPointer(&m.mapData))
+	index := key & mapData.andMask
+	sliceDataIndexPointer := (*unsafe.Pointer)(unsafe.Pointer(uintptr(mapData.data) + uintptr(index*intSizeBytes)))
+	entry := (*hashMapEntry)(atomic.LoadPointer(sliceDataIndexPointer))
+	if entry == nil || key != entry.key {
 		return
 	}
 
-	mapData := (*hashMapData)(atomic.LoadPointer(&m.mapData))
-	index := key1 & mapData.andMask
-
-	sliceDataIndexPointer := unsafe.Pointer(uintptr(mapData.data) + uintptr(index*intSizeBytes))
-	atomic.StorePointer((*unsafe.Pointer)(sliceDataIndexPointer), nil)
-	atomic.AddUint64(&mapData.count, ^uint64(0))
+	atomic.StorePointer((*unsafe.Pointer)(sliceDataIndexPointer), nil) // clear item in slice
+	atomic.AddUint64(&mapData.count, ^uint64(0))                       // decrement item counter
 }
 
 // Resize resizes the hashmap to a new size, gets rounded up to next power of 2
@@ -133,7 +127,7 @@ func (m *HashMap) Resize(newSize uint64) {
 
 	newMapData := &hashMapData{
 		andMask: newSize - 1,
-		data:    unsafe.Pointer(header.Data),
+		data:    unsafe.Pointer(header.Data), // use address of slice storage
 		size:    newSize,
 		count:   0,
 		slice:   newSlice,
@@ -147,23 +141,10 @@ func (m *HashMap) Resize(newSize uint64) {
 				continue
 			}
 
-			index := entry.key1 & mapData.andMask
+			index := entry.key & mapData.andMask
 			newSlice[index] = entry
 		}
 	}
 
 	atomic.StorePointer(&m.mapData, unsafe.Pointer(newMapData))
-}
-
-// roundUpPower2 rounds a number to the next power of 2.
-func roundUpPower2(i uint64) uint64 {
-	i--
-	i |= i >> 1
-	i |= i >> 2
-	i |= i >> 4
-	i |= i >> 8
-	i |= i >> 16
-	i |= i >> 32
-	i++
-	return i
 }

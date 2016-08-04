@@ -9,7 +9,7 @@ func setupHashMap(b *testing.B) *HashMap {
 	b.StopTimer()
 	m := New()
 	for i := 0; i < 1024; i++ {
-		m.Set(uint64(i), uint64(i), uint64(i))
+		m.Set(uint64(i), uint64(i))
 	}
 	b.StartTimer()
 	return m
@@ -30,7 +30,7 @@ func BenchmarkReadHashMap(b *testing.B) {
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
 			for i := 0; i < 1024; i++ {
-				j, _ := m.Get(uint64(i), uint64(i))
+				j, _ := m.Get(uint64(i))
 				if j.(uint64) != uint64(i) {
 					b.Fail()
 				}
@@ -39,7 +39,7 @@ func BenchmarkReadHashMap(b *testing.B) {
 	})
 }
 
-func BenchmarkReadGoMap(b *testing.B) {
+func BenchmarkReadGoMapUnsafe(b *testing.B) {
 	m := setupGoMap(b)
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
@@ -53,7 +53,7 @@ func BenchmarkReadGoMap(b *testing.B) {
 	})
 }
 
-func BenchmarkReadGoMapSafe(b *testing.B) {
+func BenchmarkReadGoMap(b *testing.B) {
 	m := setupGoMap(b)
 	l := &sync.RWMutex{}
 	b.StartTimer()
