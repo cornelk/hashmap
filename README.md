@@ -1,4 +1,5 @@
-# hashmap  [![GoDoc](https://godoc.org/github.com/cornelk/hashmap?status.svg)](https://godoc.org/github.com/cornelk/hashmap) 
+# hashmap  [![GoDoc](https://godoc.org/github.com/cornelk/hashmap?status.svg)](https://godoc.org/github.com/cornelk/hashmap) [![Go Report Card](https://goreportcard.com/badge/cornelk/hashmap)](https://goreportcard.com/report/github.com/cornelk/hashmap)
+
 A Golang thread-safe HashMap optimized for lock-free read access.
 
 Reading from the hash map in a thread-safe way is faster than reading from standard go map in an unsafe way:
