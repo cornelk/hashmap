@@ -16,7 +16,6 @@ type (
 	hashMapData struct {
 		andMask uint64
 		data    unsafe.Pointer
-		size    uint64
 		count   uint64
 		slice   []*hashMapEntry
 	}
@@ -76,7 +75,7 @@ func (m *HashMap) Set(key uint64, value interface{}) {
 				return
 			}
 		} else {
-			m.Resize(mapData.size + 1) // collision found with shortened key, resize
+			m.Resize(0) // collision found with shortened key, resize
 		}
 
 		for {
@@ -84,7 +83,7 @@ func (m *HashMap) Set(key uint64, value interface{}) {
 			if existingEntry == nil || existingEntry.key == key { // last resizing operation fixed the collision?
 				break
 			}
-			m.Resize(mapData.size + 1)
+			m.Resize(0)
 
 			mapData = (*hashMapData)(atomic.LoadPointer(&m.mapData))                                                       // update pointer
 			index = key & mapData.andMask                                                                                  // update index key
@@ -118,23 +117,27 @@ func (m *HashMap) Remove(key uint64) {
 	atomic.AddUint64(&mapData.count, ^uint64(0))                       // decrement item counter
 }
 
-// Resize resizes the hashmap to a new size, gets rounded up to next power of 2
-// Locking of the hashmap needs to be done outside of this function
+// Resize resizes the hashmap to a new size, gets rounded up to next power of 2.
+// To double the size of the hashmap use newSize 0.
+// Locking of the hashmap needs to be done outside of this function.
 func (m *HashMap) Resize(newSize uint64) {
-	newSize = roundUpPower2(newSize)
+	mapData := (*hashMapData)(atomic.LoadPointer(&m.mapData))
+	if newSize == 0 {
+		newSize = uint64(len(mapData.slice)) << 1
+	} else {
+		newSize = roundUpPower2(newSize)
+	}
 	newSlice := make([]*hashMapEntry, newSize)
 	header := (*reflect.SliceHeader)(unsafe.Pointer(&newSlice))
 
 	newMapData := &hashMapData{
 		andMask: newSize - 1,
 		data:    unsafe.Pointer(header.Data), // use address of slice storage
-		size:    newSize,
 		count:   0,
 		slice:   newSlice,
 	}
 
-	mapData := (*hashMapData)(atomic.LoadPointer(&m.mapData))
-	if mapData != nil { // copy hashmap contents to new slice with longer key
+	if mapData != nil && mapData.count > 0 { // copy hashmap contents to new slice with longer key
 		newMapData.count = mapData.count
 		for _, entry := range mapData.slice {
 			if entry == nil {
