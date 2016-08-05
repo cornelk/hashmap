@@ -15,7 +15,7 @@ func TestMapCreation(t *testing.T) {
 		t.Error("map is null.")
 	}
 
-	if m.Count() != 0 {
+	if m.Len() != 0 {
 		t.Error("new map should be empty.")
 	}
 }
@@ -25,10 +25,10 @@ func TestInsert(t *testing.T) {
 	elephant := Animal{"elephant"}
 	monkey := Animal{"monkey"}
 
-	m.Set(1, elephant)
-	m.Set(2, monkey)
+	m.Add(1, elephant)
+	m.Add(2, monkey)
 
-	if m.Count() != 2 {
+	if m.Len() != 2 {
 		t.Error("map should contain exactly two elements.")
 	}
 }
@@ -47,7 +47,7 @@ func TestGet(t *testing.T) {
 	}
 
 	elephant := Animal{"elephant"}
-	m.Set(2, elephant)
+	m.Add(2, elephant)
 
 	// Retrieve inserted element.
 
@@ -71,12 +71,12 @@ func TestRemove(t *testing.T) {
 	m := New()
 
 	monkey := Animal{"monkey"}
-	m.Set(1, monkey)
-	m.Set(1, monkey)
+	m.Add(1, monkey)
+	m.Add(1, monkey)
 
-	m.Remove(1)
+	m.Del(1)
 
-	if m.Count() != 0 {
+	if m.Len() != 0 {
 		t.Error("Expecting count to be zero once item was removed.")
 	}
 
@@ -88,16 +88,16 @@ func TestRemove(t *testing.T) {
 		t.Error("Expecting item to be nil after its removal.")
 	}
 
-	m.Remove(2) // Remove a none existing element.
+	m.Del(2) // Remove a none existing element.
 }
 
 func TestCount(t *testing.T) {
 	m := New()
 	for i := 0; i < 1024; i++ {
-		m.Set(uint64(i), Animal{strconv.Itoa(i)})
+		m.Add(uint64(i), Animal{strconv.Itoa(i)})
 	}
 
-	if m.Count() != 1024 {
+	if m.Len() != 1024 {
 		t.Error("Expecting 100 element within map.")
 	}
 }

@@ -9,7 +9,7 @@ func setupHashMap(b *testing.B) *HashMap {
 	b.StopTimer()
 	m := New()
 	for i := 0; i < 1024; i++ {
-		m.Set(uint64(i), uint64(i))
+		m.Add(uint64(i), uint64(i))
 	}
 	b.StartTimer()
 	return m

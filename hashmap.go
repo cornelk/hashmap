@@ -39,8 +39,8 @@ func NewSize(size uint64) *HashMap {
 	return hashmap
 }
 
-// Count returns the number of elements within the map.
-func (m *HashMap) Count() uint64 {
+// Len returns the number of elements within the map.
+func (m *HashMap) Len() uint64 {
 	mapData := (*hashMapData)(atomic.LoadPointer(&m.mapData))
 	return atomic.LoadUint64(&mapData.count)
 }
@@ -59,8 +59,8 @@ func (m *HashMap) Get(key uint64) (interface{}, bool) {
 	return entry.value, true
 }
 
-// Set sets the given value under the specified key.
-func (m *HashMap) Set(key uint64, value interface{}) {
+// Add adds the value under the specified key to the map. An existing item for this key will be overwritten.
+func (m *HashMap) Add(key uint64, value interface{}) {
 	m.Lock()
 	defer m.Unlock()
 
@@ -100,8 +100,8 @@ func (m *HashMap) Set(key uint64, value interface{}) {
 	atomic.AddUint64(&mapData.count, 1)
 }
 
-// Remove removes an element from the map.
-func (m *HashMap) Remove(key uint64) {
+// Del removes an element from the map.
+func (m *HashMap) Del(key uint64) {
 	m.Lock() // lock before getting the value to make sure to work on the latest data slice
 	defer m.Unlock()
 
