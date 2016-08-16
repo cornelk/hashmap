@@ -36,7 +36,7 @@ func TestInsert(t *testing.T) {
 func TestGet(t *testing.T) {
 	m := New()
 
-	val, ok := m.Get(1) // Get a missing element.
+	val, ok := m.Get(0) // Get a missing element.
 
 	if ok == true {
 		t.Error("ok should be false when item is missing from map.")
