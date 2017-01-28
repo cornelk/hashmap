@@ -55,12 +55,17 @@ func (m *HashMap) Fillrate() uint64 {
 	return (count * 100) / sliceLen
 }
 
-// Get retrieves an element from map under given key.
-func (m *HashMap) Get(key uint64) (unsafe.Pointer, bool) {
+func (m *HashMap) getSliceItemForKey(key uint64) *ListElement {
 	mapData := (*hashMapData)(atomic.LoadPointer(&m.mapData))
 	index := key >> mapData.keyRightShifts
 	sliceDataIndexPointer := (*unsafe.Pointer)(unsafe.Pointer(uintptr(mapData.data) + uintptr(index*intSizeBytes)))
 	entry := (*ListElement)(atomic.LoadPointer(sliceDataIndexPointer))
+	return entry
+}
+
+// Get retrieves an element from map under given key.
+func (m *HashMap) Get(key uint64) (unsafe.Pointer, bool) {
+	entry := m.getSliceItemForKey(key)
 
 	for {
 		if entry == nil {
@@ -84,10 +89,7 @@ func (m *HashMap) Get(key uint64) (unsafe.Pointer, bool) {
 
 // Del deletes the key from the map.
 func (m *HashMap) Del(key uint64) {
-	mapData := (*hashMapData)(atomic.LoadPointer(&m.mapData))
-	index := key >> mapData.keyRightShifts
-	sliceDataIndexPointer := (*unsafe.Pointer)(unsafe.Pointer(uintptr(mapData.data) + uintptr(index*intSizeBytes)))
-	entry := (*ListElement)(atomic.LoadPointer(sliceDataIndexPointer))
+	entry := m.getSliceItemForKey(key)
 
 	for {
 		if entry == nil {
