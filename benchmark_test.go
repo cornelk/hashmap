@@ -1,6 +1,7 @@
 package hashmap
 
 import (
+	"strconv"
 	"sync"
 	"testing"
 	"unsafe"
@@ -74,6 +75,50 @@ func BenchmarkReadGoMap(b *testing.B) {
 				j, _ := m[i]
 				l.RUnlock()
 				if j != i {
+					b.Fail()
+				}
+			}
+		}
+	})
+}
+
+func BenchmarkUnsafePointer(b *testing.B) {
+	b.StopTimer()
+	var m [benchmarkItemCount]unsafe.Pointer
+	for i := 0; i < benchmarkItemCount; i++ {
+		item := &Animal{strconv.Itoa(i)}
+		m[i] = unsafe.Pointer(item)
+	}
+	b.StartTimer()
+
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			for i := uint64(0); i < benchmarkItemCount; i++ {
+				item := m[i]
+				animal := (*Animal)(item)
+				if animal == nil {
+					b.Fail()
+				}
+			}
+		}
+	})
+}
+
+func BenchmarkInterface(b *testing.B) {
+	b.StopTimer()
+	var m [benchmarkItemCount]interface{}
+	for i := 0; i < benchmarkItemCount; i++ {
+		item := &Animal{strconv.Itoa(i)}
+		m[i] = item
+	}
+	b.StartTimer()
+
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			for i := uint64(0); i < benchmarkItemCount; i++ {
+				item := m[i]
+				_, ok := item.(*Animal)
+				if !ok {
 					b.Fail()
 				}
 			}
