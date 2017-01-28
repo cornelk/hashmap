@@ -77,7 +77,7 @@ func TestGet(t *testing.T) {
 		t.Error("ok should be false when item is missing from map.")
 	}
 
-	val, ok = m.Get(0) // Get a missing element.
+	_, ok = m.Get(0) // Get a missing element.
 	if ok == true {
 		t.Error("ok should be false when item is missing from map.")
 	}
