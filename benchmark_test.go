@@ -3,14 +3,21 @@ package hashmap
 import (
 	"sync"
 	"testing"
+	"unsafe"
 )
+
+const benchmarkItemCount = 1 << 9
 
 func setupHashMap(b *testing.B) *HashMap {
 	b.StopTimer()
 	m := New()
-	for i := 0; i < 1024; i++ {
-		m.Add(uint64(i), uint64(i))
+	log := log2(uint64(benchmarkItemCount))
+	for i := uint64(0); i < benchmarkItemCount; i++ {
+		hash := i << (64 - log)
+		j := uintptr(i)
+		m.Add(hash, unsafe.Pointer(&j))
 	}
+
 	b.StartTimer()
 	return m
 }
@@ -18,8 +25,8 @@ func setupHashMap(b *testing.B) *HashMap {
 func setupGoMap(b *testing.B) map[uint64]uint64 {
 	b.StopTimer()
 	m := make(map[uint64]uint64)
-	for i := 0; i < 1024; i++ {
-		m[uint64(i)] = uint64(i)
+	for i := uint64(0); i < benchmarkItemCount; i++ {
+		m[i] = i
 	}
 	b.StartTimer()
 	return m
@@ -27,11 +34,14 @@ func setupGoMap(b *testing.B) map[uint64]uint64 {
 
 func BenchmarkReadHashMap(b *testing.B) {
 	m := setupHashMap(b)
+	log := log2(uint64(benchmarkItemCount))
+
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			for i := 0; i < 1024; i++ {
-				j, _ := m.Get(uint64(i))
-				if j.(uint64) != uint64(i) {
+			for i := uint64(0); i < benchmarkItemCount; i++ {
+				hash := i << (64 - log)
+				j, _ := m.Get(hash)
+				if *(*uint64)(j) != i {
 					b.Fail()
 				}
 			}
@@ -43,9 +53,9 @@ func BenchmarkReadGoMapUnsafe(b *testing.B) {
 	m := setupGoMap(b)
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			for i := 0; i < 1024; i++ {
-				j, _ := m[uint64(i)]
-				if j != uint64(i) {
+			for i := uint64(0); i < benchmarkItemCount; i++ {
+				j, _ := m[i]
+				if j != i {
 					b.Fail()
 				}
 			}
@@ -59,11 +69,11 @@ func BenchmarkReadGoMap(b *testing.B) {
 	b.StartTimer()
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			for i := 0; i < 1024; i++ {
+			for i := uint64(0); i < benchmarkItemCount; i++ {
 				l.RLock()
-				j, _ := m[uint64(i)]
+				j, _ := m[i]
 				l.RUnlock()
-				if j != uint64(i) {
+				if j != i {
 					b.Fail()
 				}
 			}

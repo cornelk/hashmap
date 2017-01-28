@@ -19,3 +19,12 @@ func roundUpPower2(i uint64) uint64 {
 	i++
 	return i
 }
+
+// log2 computes the binary logarithm of x, rounded up to the next integer.
+func log2(i uint64) uint64 {
+	var n, p uint64
+	for p = 1; p < i; p += p {
+		n++
+	}
+	return n
+}
