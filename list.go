@@ -79,7 +79,7 @@ func (l *List) insertAt(newElement *ListElement, left *ListElement, right *ListE
 // Delete marks the list element as deleted.
 func (l *List) Delete(element *ListElement) {
 	if !atomic.CompareAndSwapUint64(&element.deleted, 0, 1) {
-		return
+		return // element was already deleted
 	}
 
 	atomic.StorePointer(&element.value, nil) // clear the value for the GC
