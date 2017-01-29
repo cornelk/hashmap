@@ -22,7 +22,7 @@ type (
 
 	// HashMap implements a read optimized hash map.
 	HashMap struct {
-		mapData    unsafe.Pointer // pointer to a map instance that gets replaced if the map resizes
+		mapDataPtr unsafe.Pointer // pointer to a map instance that gets replaced if the map resizes
 		linkedList *List          // key sorted linked list of elements
 		sync.Mutex                // mutex that is only used for resize operations
 	}
@@ -53,16 +53,20 @@ func (m *HashMap) Len() uint64 {
 	return m.linkedList.Len()
 }
 
+func (m *HashMap) mapData() *hashMapData {
+	return (*hashMapData)(atomic.LoadPointer(&m.mapDataPtr))
+}
+
 // Fillrate returns the fill rate of the map as an percentage integer.
 func (m *HashMap) Fillrate() uint64 {
-	mapData := (*hashMapData)(atomic.LoadPointer(&m.mapData))
+	mapData := m.mapData()
 	count := atomic.LoadUint64(&mapData.count)
 	sliceLen := uint64(len(mapData.slice))
 	return (count * 100) / sliceLen
 }
 
 func (m *HashMap) getSliceItemForKey(hashedKey uint64) (mapData *hashMapData, item *ListElement) {
-	mapData = (*hashMapData)(atomic.LoadPointer(&m.mapData))
+	mapData = m.mapData()
 	index := hashedKey >> mapData.keyRightShifts
 	sliceDataIndexPointer := (*unsafe.Pointer)(unsafe.Pointer(uintptr(mapData.data) + uintptr(index*intSizeBytes)))
 	item = (*ListElement)(atomic.LoadPointer(sliceDataIndexPointer))
@@ -72,7 +76,7 @@ func (m *HashMap) getSliceItemForKey(hashedKey uint64) (mapData *hashMapData, it
 // Get retrieves an element from the map under given hash key.
 func (m *HashMap) Get(hashedKey uint64) (unsafe.Pointer, bool) {
 	// inline HashMap.getSliceItemForKey()
-	mapData := (*hashMapData)(atomic.LoadPointer(&m.mapData))
+	mapData := (*hashMapData)(atomic.LoadPointer(&m.mapDataPtr))
 	index := hashedKey >> mapData.keyRightShifts
 	sliceDataIndexPointer := (*unsafe.Pointer)(unsafe.Pointer(uintptr(mapData.data) + uintptr(index*intSizeBytes)))
 	entry := (*ListElement)(atomic.LoadPointer(sliceDataIndexPointer))
@@ -124,14 +128,14 @@ func (m *HashMap) Set(hashedKey uint64, value unsafe.Pointer) {
 			continue // a concurrent add did interfere, try again
 		}
 
-		newSliceCount := m.addItemToIndex(newEntry, mapData)
+		newSliceCount := mapData.addItemToIndex(newEntry)
 		if newSliceCount != 0 {
 			sliceLen := uint64(len(mapData.slice))
 			fillRate := (newSliceCount * 100) / sliceLen
 
 			if fillRate > MaxFillRate { // check if the slice needs to be resized
 				m.Lock()
-				currentMapData := (*hashMapData)(atomic.LoadPointer(&m.mapData))
+				currentMapData := m.mapData()
 				if mapData == currentMapData { // double check that no other resize happened
 					m.grow(0)
 				}
@@ -143,7 +147,7 @@ func (m *HashMap) Set(hashedKey uint64, value unsafe.Pointer) {
 }
 
 // adds an item to the index if needed and returns the new item counter if it changed, otherwise 0
-func (m *HashMap) addItemToIndex(item *ListElement, mapData *hashMapData) uint64 {
+func (mapData *hashMapData) addItemToIndex(item *ListElement) uint64 {
 	index := item.keyHash >> mapData.keyRightShifts
 	sliceDataIndexPointer := (*unsafe.Pointer)(unsafe.Pointer(uintptr(mapData.data) + uintptr(index*intSizeBytes)))
 
@@ -175,7 +179,7 @@ func (m *HashMap) Grow(newSize uint64) {
 }
 
 func (m *HashMap) grow(newSize uint64) {
-	mapData := (*hashMapData)(atomic.LoadPointer(&m.mapData))
+	mapData := m.mapData()
 	if newSize == 0 {
 		newSize = uint64(len(mapData.slice)) << 1
 	} else {
@@ -193,7 +197,7 @@ func (m *HashMap) grow(newSize uint64) {
 
 	m.fillIndexItems(newMapData) // initialize new index slice with longer keys
 
-	atomic.StorePointer(&m.mapData, unsafe.Pointer(newMapData))
+	atomic.StorePointer(&m.mapDataPtr, unsafe.Pointer(newMapData))
 
 	m.fillIndexItems(newMapData) // make sure that the new index is up to date with the current state of the linked list
 }
@@ -207,7 +211,7 @@ func (m *HashMap) fillIndexItems(mapData *hashMapData) {
 		index := item.keyHash >> mapData.keyRightShifts
 		if item == first || index != lastIndex { // store item with smallest hash key for every index
 			if !item.Deleted() {
-				m.addItemToIndex(item, mapData)
+				mapData.addItemToIndex(item)
 				lastIndex = index
 			}
 		}
