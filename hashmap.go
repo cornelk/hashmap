@@ -61,9 +61,9 @@ func (m *HashMap) Fillrate() uint64 {
 	return (count * 100) / sliceLen
 }
 
-func (m *HashMap) getSliceItemForKey(hashKey uint64) *ListElement {
+func (m *HashMap) getSliceItemForKey(hashedKey uint64) *ListElement {
 	mapData := (*hashMapData)(atomic.LoadPointer(&m.mapData))
-	index := hashKey >> mapData.keyRightShifts
+	index := hashedKey >> mapData.keyRightShifts
 	sliceDataIndexPointer := (*unsafe.Pointer)(unsafe.Pointer(uintptr(mapData.data) + uintptr(index*intSizeBytes)))
 	entry := (*ListElement)(atomic.LoadPointer(sliceDataIndexPointer))
 	return entry
@@ -71,38 +71,32 @@ func (m *HashMap) getSliceItemForKey(hashKey uint64) *ListElement {
 
 // Get retrieves an element from the map under given hash key.
 func (m *HashMap) Get(hashedKey uint64) (unsafe.Pointer, bool) {
-	entry := m.getSliceItemForKey(hashedKey)
+	// inline HashMap.getSliceItemForKey()
+	mapData := (*hashMapData)(atomic.LoadPointer(&m.mapData))
+	index := hashedKey >> mapData.keyRightShifts
+	sliceDataIndexPointer := (*unsafe.Pointer)(unsafe.Pointer(uintptr(mapData.data) + uintptr(index*intSizeBytes)))
+	entry := (*ListElement)(atomic.LoadPointer(sliceDataIndexPointer))
 
-	for {
-		if entry == nil {
-			return nil, false
-		}
-
+	for entry != nil {
 		if entry.keyHash == hashedKey {
-			if atomic.LoadUint64(&entry.deleted) == 0 {
-				val := atomic.LoadPointer(&entry.value)
-				return val, true
+			if atomic.LoadUint64(&entry.deleted) == 1 { // inline ListElement.Deleted()
+				return nil, false
 			}
-			return nil, false
+			return atomic.LoadPointer(&entry.value), true // inline ListElement.Value()
 		}
 
 		if entry.keyHash > hashedKey {
 			return nil, false
 		}
 
-		entry = entry.Next()
+		entry = (*ListElement)(atomic.LoadPointer(&entry.nextElement)) // inline ListElement.Next()
 	}
+	return nil, false
 }
 
 // Del deletes the hashed key from the map.
 func (m *HashMap) Del(hashedKey uint64) {
-	entry := m.getSliceItemForKey(hashedKey)
-
-	for {
-		if entry == nil {
-			return
-		}
-
+	for entry := m.getSliceItemForKey(hashedKey); entry != nil; entry = entry.Next() {
 		if entry.keyHash == hashedKey {
 			m.linkedList.Delete(entry)
 			return
@@ -111,8 +105,6 @@ func (m *HashMap) Del(hashedKey uint64) {
 		if entry.keyHash > hashedKey {
 			return
 		}
-
-		entry = entry.Next()
 	}
 }
 
@@ -224,7 +216,7 @@ func (m *HashMap) String() string {
 	item := first
 
 	for item != nil {
-		if atomic.LoadUint64(&item.deleted) == 0 {
+		if !item.Deleted() {
 			if item != first {
 				buffer.WriteRune(',')
 			}
@@ -246,9 +238,8 @@ func (m *HashMap) Iter() <-chan KeyValue {
 	go func() {
 		item := m.linkedList.First()
 		for item != nil {
-			if atomic.LoadUint64(&item.deleted) == 0 {
-				val := atomic.LoadPointer(&item.value)
-				ch <- KeyValue{item.key, val}
+			if !item.Deleted() {
+				ch <- KeyValue{item.key, item.Value()}
 			}
 			item = item.Next()
 		}
