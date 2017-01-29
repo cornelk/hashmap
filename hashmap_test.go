@@ -33,8 +33,7 @@ func TestOverwrite(t *testing.T) {
 		t.Error("map should contain exactly one element.")
 	}
 
-	// Retrieve inserted element.
-	tmp, ok := m.Get(1 << 62)
+	tmp, ok := m.Get(1 << 62) // Retrieve inserted element.
 	if ok == false {
 		t.Error("ok should be true for item stored within the map.")
 	}
@@ -82,8 +81,7 @@ func TestGet(t *testing.T) {
 		t.Error("ok should be false when item is missing from map.")
 	}
 
-	// Retrieve inserted element.
-	tmp, ok := m.Get(1)
+	tmp, ok := m.Get(1) // Retrieve inserted element.
 	if ok == false {
 		t.Error("ok should be true for item stored within the map.")
 	}
@@ -172,5 +170,28 @@ func TestDelete(t *testing.T) {
 	}
 	if val != nil {
 		t.Error("Missing values should return as nil.")
+	}
+}
+
+func TestIterator(t *testing.T) {
+	m := New()
+	itemCount := 16
+	log := log2(uint64(itemCount))
+
+	for i := 0; i < itemCount; i++ {
+		m.Set(uint64(i)<<(64-log), unsafe.Pointer(&Animal{strconv.Itoa(i)}))
+	}
+
+	counter := 0
+	for item := range m.Iter() {
+		val := item.Value
+		if val == nil {
+			t.Error("Expecting an object.")
+		}
+		counter++
+	}
+
+	if counter != itemCount {
+		t.Error("Returned item count did not match.")
 	}
 }

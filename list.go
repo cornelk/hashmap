@@ -8,6 +8,7 @@ import (
 // ListElement is an element of the list.
 type ListElement struct {
 	nextElement unsafe.Pointer
+	key         interface{}
 	keyHash     uint64
 	value       unsafe.Pointer
 	deleted     uint64 // the root and all deleted items are set to 1
@@ -93,7 +94,8 @@ func (e *ListElement) Next() *ListElement {
 
 // search for entry starting from e (this)
 func (e *ListElement) search(entry *ListElement) (left *ListElement, found *ListElement, right *ListElement) {
-	if e == nil || unsafe.Pointer(e) == e.nextElement { // no items beside root
+	eNext := (atomic.LoadPointer(&e.nextElement))
+	if eNext == unsafe.Pointer(e) { // no items beside root
 		return nil, nil, nil
 	}
 

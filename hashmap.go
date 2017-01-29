@@ -9,7 +9,7 @@ import (
 	"unsafe"
 )
 
-// MaxFillRate is the maximum fill rate for the slice before a resize  will happen
+// MaxFillRate is the maximum fill rate for the slice before a resize  will happen.
 const MaxFillRate = 50
 
 type (
@@ -20,11 +20,17 @@ type (
 		count          uint64         // count of filled elements in the slice
 	}
 
-	// HashMap implements a read optimized hash map
+	// HashMap implements a read optimized hash map.
 	HashMap struct {
 		mapData    unsafe.Pointer // pointer to a map instance that gets replaced if the map resizes
 		linkedList *List          // key sorted linked list of elements
 		sync.Mutex                // mutex that is only used for resize operations
+	}
+
+	// KeyValue represents a key/value that is returned by the iterator.
+	KeyValue struct {
+		Key   interface{}
+		Value unsafe.Pointer
 	}
 )
 
@@ -74,7 +80,8 @@ func (m *HashMap) Get(hashedKey uint64) (unsafe.Pointer, bool) {
 
 		if entry.keyHash == hashedKey {
 			if atomic.LoadUint64(&entry.deleted) == 0 {
-				return entry.value, true
+				val := atomic.LoadPointer(&entry.value)
+				return val, true
 			}
 			return nil, false
 		}
@@ -113,6 +120,7 @@ func (m *HashMap) Del(hashedKey uint64) {
 // Do not use non hashes as keys for this function, the performance would decrease!
 func (m *HashMap) Set(hashedKey uint64, value unsafe.Pointer) {
 	newEntry := &ListElement{
+		key:     hashedKey,
 		keyHash: hashedKey,
 		value:   value,
 	}
@@ -207,7 +215,7 @@ func (m *HashMap) grow(newSize uint64) {
 	atomic.StorePointer(&m.mapData, unsafe.Pointer(newMapData))
 }
 
-// String returns the map as a string, only hashed keys are printed
+// String returns the map as a string, only hashed keys are printed.
 func (m *HashMap) String() string {
 	buffer := bytes.NewBufferString("")
 	buffer.WriteRune('[')
@@ -216,14 +224,36 @@ func (m *HashMap) String() string {
 	item := first
 
 	for item != nil {
-		if item != first {
-			buffer.WriteRune(',')
+		if atomic.LoadUint64(&item.deleted) == 0 {
+			if item != first {
+				buffer.WriteRune(',')
+			}
+			fmt.Fprint(buffer, item.keyHash)
 		}
-		fmt.Fprint(buffer, item.keyHash)
 
 		item = item.Next()
 	}
 
 	buffer.WriteRune(']')
 	return buffer.String()
+}
+
+// Iter returns an iterator which could be used in a for range loop.
+// The order of the items is sorted by hash keys.
+func (m *HashMap) Iter() <-chan KeyValue {
+	ch := make(chan KeyValue) // do not use a size here since items can get added while we iterate
+
+	go func() {
+		item := m.linkedList.First()
+		for item != nil {
+			if atomic.LoadUint64(&item.deleted) == 0 {
+				val := atomic.LoadPointer(&item.value)
+				ch <- KeyValue{item.key, val}
+			}
+			item = item.Next()
+		}
+		close(ch)
+	}()
+
+	return ch
 }
