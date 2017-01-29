@@ -82,6 +82,36 @@ func BenchmarkReadGoMap(b *testing.B) {
 	})
 }
 
+func BenchmarkWriteHashMap(b *testing.B) {
+	m := New()
+	log := log2(uint64(benchmarkItemCount))
+
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			for i := uint64(0); i < benchmarkItemCount; i++ {
+				hash := i << (64 - log)
+				j := uintptr(i)
+				m.Set(hash, unsafe.Pointer(&j))
+			}
+		}
+	})
+}
+
+func BenchmarkWriteGoMap(b *testing.B) {
+	m := make(map[uint64]uint64)
+	l := &sync.RWMutex{}
+
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			for i := uint64(0); i < benchmarkItemCount; i++ {
+				l.Lock()
+				m[i] = i
+				l.Unlock()
+			}
+		}
+	})
+}
+
 func BenchmarkUnsafePointer(b *testing.B) {
 	b.StopTimer()
 	var m [benchmarkItemCount]unsafe.Pointer
