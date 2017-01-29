@@ -29,29 +29,15 @@ func (e *ListElement) Next() *ListElement {
 	return (*ListElement)(atomic.LoadPointer(&e.nextElement))
 }
 
-// search for entry starting from e (this)
-func (e *ListElement) search(entry *ListElement) (left *ListElement, found *ListElement, right *ListElement) {
-	eNext := (atomic.LoadPointer(&e.nextElement))
-	if eNext == unsafe.Pointer(e) { // no items beside root
-		return nil, nil, nil
+// SetDeleted sets the deleted flag of the item.
+func (e *ListElement) SetDeleted(deleted bool) bool {
+	if deleted {
+		return atomic.CompareAndSwapUint64(&e.deleted, 0, 1)
 	}
+	return atomic.CompareAndSwapUint64(&e.deleted, 1, 0)
+}
 
-	found = e
-	for {
-		right = found.Next()
-		if entry.keyHash == found.keyHash { // key already exists
-			return nil, found, nil
-		}
-
-		if entry.keyHash < found.keyHash { // new item needs to be inserted before the found value
-			return left, nil, found
-		}
-
-		// go to next entry in sorted linked list
-		left = found
-		found = left.Next()
-		if found == nil { // no more items on the right
-			return left, nil, nil
-		}
-	}
+// SetValue sets the value of the item.
+func (e *ListElement) SetValue(value unsafe.Pointer) {
+	atomic.StorePointer(&e.value, value)
 }

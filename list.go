@@ -39,17 +39,45 @@ func (l *List) Add(newElement *ListElement, searchStart *ListElement) bool {
 		searchStart = l.root
 	}
 
-	left, found, right := searchStart.search(newElement)
+	left, found, right := l.search(searchStart, newElement)
 	if found != nil { // existing item found
-		atomic.StorePointer(&found.value, unsafe.Pointer(newElement.value)) // update the value
-
-		if atomic.CompareAndSwapUint64(&found.deleted, 1, 0) { // try to mark from deleted to not deleted
+		found.SetValue(unsafe.Pointer(newElement.value)) // update the value
+		if found.SetDeleted(false) {                     // try to mark from deleted to not deleted
 			atomic.AddUint64(&l.count, 1)
 		}
 		return true
 	}
 
 	return l.insertAt(newElement, left, right)
+}
+
+func (l *List) search(searchStart *ListElement, item *ListElement) (left *ListElement, found *ListElement, right *ListElement) {
+	if searchStart == l.root {
+		found = searchStart.Next()
+		if found == l.root { // no items beside root?
+			return nil, nil, nil
+		}
+		left = searchStart
+	} else {
+		found = searchStart
+	}
+
+	for {
+		if item.keyHash == found.keyHash { // key already exists
+			return nil, found, nil
+		}
+
+		if item.keyHash < found.keyHash { // new item needs to be inserted before the found value
+			return left, nil, found
+		}
+
+		// go to next entry in sorted linked list
+		left = found
+		found = left.Next()
+		if found == nil { // no more items on the right
+			return left, nil, nil
+		}
+	}
 }
 
 func (l *List) insertAt(newElement *ListElement, left *ListElement, right *ListElement) bool {
@@ -70,10 +98,10 @@ func (l *List) insertAt(newElement *ListElement, left *ListElement, right *ListE
 
 // Delete marks the list element as deleted.
 func (l *List) Delete(element *ListElement) {
-	if !atomic.CompareAndSwapUint64(&element.deleted, 0, 1) {
+	if !element.SetDeleted(true) {
 		return // element was already deleted
 	}
 
-	atomic.StorePointer(&element.value, nil) // clear the value for the GC
+	element.SetValue(nil) // clear the value for the GC
 	atomic.AddUint64(&l.count, ^uint64(1-1))
 }
