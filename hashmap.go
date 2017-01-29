@@ -61,12 +61,12 @@ func (m *HashMap) Fillrate() uint64 {
 	return (count * 100) / sliceLen
 }
 
-func (m *HashMap) getSliceItemForKey(hashedKey uint64) *ListElement {
-	mapData := (*hashMapData)(atomic.LoadPointer(&m.mapData))
+func (m *HashMap) getSliceItemForKey(hashedKey uint64) (mapData *hashMapData, item *ListElement) {
+	mapData = (*hashMapData)(atomic.LoadPointer(&m.mapData))
 	index := hashedKey >> mapData.keyRightShifts
 	sliceDataIndexPointer := (*unsafe.Pointer)(unsafe.Pointer(uintptr(mapData.data) + uintptr(index*intSizeBytes)))
-	entry := (*ListElement)(atomic.LoadPointer(sliceDataIndexPointer))
-	return entry
+	item = (*ListElement)(atomic.LoadPointer(sliceDataIndexPointer))
+	return
 }
 
 // Get retrieves an element from the map under given hash key.
@@ -96,7 +96,7 @@ func (m *HashMap) Get(hashedKey uint64) (unsafe.Pointer, bool) {
 
 // Del deletes the hashed key from the map.
 func (m *HashMap) Del(hashedKey uint64) {
-	for entry := m.getSliceItemForKey(hashedKey); entry != nil; entry = entry.Next() {
+	for _, entry := m.getSliceItemForKey(hashedKey); entry != nil; entry = entry.Next() {
 		if entry.keyHash == hashedKey {
 			m.linkedList.Delete(entry)
 			return
@@ -119,11 +119,7 @@ func (m *HashMap) Set(hashedKey uint64, value unsafe.Pointer) {
 	}
 
 	for {
-		mapData := (*hashMapData)(atomic.LoadPointer(&m.mapData))
-		index := hashedKey >> mapData.keyRightShifts
-		sliceDataIndexPointer := (*unsafe.Pointer)(unsafe.Pointer(uintptr(mapData.data) + uintptr(index*intSizeBytes)))
-		sliceItem := (*ListElement)(atomic.LoadPointer(sliceDataIndexPointer))
-
+		mapData, sliceItem := m.getSliceItemForKey(hashedKey)
 		if !m.linkedList.Add(newEntry, sliceItem) {
 			continue // a concurrent add did interfere, try again
 		}
