@@ -11,7 +11,7 @@ type ListElement struct {
 	key         interface{}
 	keyHash     uint64
 	value       unsafe.Pointer
-	deleted     uint64 // the root and all deleted items are set to 1
+	deleted     uint64 // for the root and all deleted items this is set to 1
 }
 
 // Value returns the value of the list item.
@@ -38,15 +38,13 @@ func (e *ListElement) search(entry *ListElement) (left *ListElement, found *List
 
 	found = e
 	for {
-		if !e.Deleted() { // skip reading values of root or deleted items
-			right = found.Next()
-			if entry.keyHash == found.keyHash { // key already exists
-				return nil, found, nil
-			}
+		right = found.Next()
+		if entry.keyHash == found.keyHash { // key already exists
+			return nil, found, nil
+		}
 
-			if entry.keyHash < found.keyHash { // new item needs to be inserted before the found value
-				return left, nil, found
-			}
+		if entry.keyHash < found.keyHash { // new item needs to be inserted before the found value
+			return left, nil, found
 		}
 
 		// go to next entry in sorted linked list

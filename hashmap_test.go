@@ -45,15 +45,17 @@ func TestOverwrite(t *testing.T) {
 }
 
 func TestInsert(t *testing.T) {
-	m := New()
+	m := NewSize(4)
 	elephant := &Animal{"elephant"}
 	monkey := &Animal{"monkey"}
 
-	m.Set(0<<62, unsafe.Pointer(elephant))
-	m.Set(1<<62, unsafe.Pointer(monkey))
+	m.Set(4, unsafe.Pointer(elephant))
+	m.Set(3, unsafe.Pointer(elephant))
+	m.Set(2, unsafe.Pointer(monkey))
+	m.Set(1, unsafe.Pointer(monkey))
 
-	if m.Len() != 2 {
-		t.Error("map should contain exactly two elements.")
+	if m.Len() != 4 {
+		t.Error("map should contain exactly 4 elements.")
 	}
 }
 
@@ -171,6 +173,8 @@ func TestDelete(t *testing.T) {
 	if val != nil {
 		t.Error("Missing values should return as nil.")
 	}
+
+	m.Set(1, unsafe.Pointer(elephant))
 }
 
 func TestIterator(t *testing.T) {
@@ -178,7 +182,7 @@ func TestIterator(t *testing.T) {
 	itemCount := 16
 	log := log2(uint64(itemCount))
 
-	for i := 0; i < itemCount; i++ {
+	for i := itemCount; i > 0; i-- {
 		m.Set(uint64(i)<<(64-log), unsafe.Pointer(&Animal{strconv.Itoa(i)}))
 	}
 

@@ -35,7 +35,7 @@ func (l *List) First() *ListElement {
 
 // Add adds or updates an item to the list.
 func (l *List) Add(newElement *ListElement, searchStart *ListElement) bool {
-	if searchStart == nil || newElement.keyHash < searchStart.keyHash { // key needs to be inserted on the left?{
+	if searchStart == nil || newElement.keyHash < searchStart.keyHash { // key needs to be inserted on the left? {
 		searchStart = l.root
 	}
 
@@ -55,12 +55,12 @@ func (l *List) Add(newElement *ListElement, searchStart *ListElement) bool {
 func (l *List) insertAt(newElement *ListElement, left *ListElement, right *ListElement) bool {
 	if left == nil { // insert at root
 		if !atomic.CompareAndSwapPointer(&l.root.nextElement, unsafe.Pointer(l.root), unsafe.Pointer(newElement)) {
-			return false // item was already modified
+			return false // item was modified concurrently
 		}
 	} else {
 		newElement.nextElement = unsafe.Pointer(right)
 		if !atomic.CompareAndSwapPointer(&left.nextElement, unsafe.Pointer(right), unsafe.Pointer(newElement)) {
-			return false // item was already modified
+			return false // item was modified concurrently
 		}
 	}
 
