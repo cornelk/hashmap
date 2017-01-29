@@ -16,7 +16,7 @@ func setupHashMap(b *testing.B) *HashMap {
 	for i := uint64(0); i < benchmarkItemCount; i++ {
 		hash := i << (64 - log)
 		j := uintptr(i)
-		m.Add(hash, unsafe.Pointer(&j))
+		m.Set(hash, unsafe.Pointer(&j))
 	}
 
 	b.StartTimer()

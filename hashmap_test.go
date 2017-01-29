@@ -26,8 +26,8 @@ func TestOverwrite(t *testing.T) {
 	elephant := &Animal{"elephant"}
 	monkey := &Animal{"monkey"}
 
-	m.Add(1<<62, unsafe.Pointer(elephant))
-	m.Add(1<<62, unsafe.Pointer(monkey))
+	m.Set(1<<62, unsafe.Pointer(elephant))
+	m.Set(1<<62, unsafe.Pointer(monkey))
 
 	if m.Len() != 1 {
 		t.Error("map should contain exactly one element.")
@@ -50,8 +50,8 @@ func TestInsert(t *testing.T) {
 	elephant := &Animal{"elephant"}
 	monkey := &Animal{"monkey"}
 
-	m.Add(0<<62, unsafe.Pointer(elephant))
-	m.Add(1<<62, unsafe.Pointer(monkey))
+	m.Set(0<<62, unsafe.Pointer(elephant))
+	m.Set(1<<62, unsafe.Pointer(monkey))
 
 	if m.Len() != 2 {
 		t.Error("map should contain exactly two elements.")
@@ -70,7 +70,7 @@ func TestGet(t *testing.T) {
 	}
 
 	elephant := &Animal{"elephant"}
-	m.Add(1, unsafe.Pointer(elephant))
+	m.Set(1, unsafe.Pointer(elephant))
 
 	_, ok = m.Get(2)
 	if ok == true {
@@ -103,7 +103,7 @@ func TestResize(t *testing.T) {
 	log := log2(uint64(itemCount))
 
 	for i := 0; i < itemCount; i++ {
-		m.Add(uint64(i)<<(64-log), unsafe.Pointer(&Animal{strconv.Itoa(i)}))
+		m.Set(uint64(i)<<(64-log), unsafe.Pointer(&Animal{strconv.Itoa(i)}))
 	}
 
 	if m.Len() != uint64(itemCount) {
@@ -132,13 +132,13 @@ func TestStringer(t *testing.T) {
 		t.Error("empty map as string does not match.")
 	}
 
-	m.Add(0<<62, unsafe.Pointer(elephant))
+	m.Set(0<<62, unsafe.Pointer(elephant))
 	s = m.String()
 	if s != "[0]" {
 		t.Error("1 item map as string does not match.")
 	}
 
-	m.Add(1<<62, unsafe.Pointer(monkey))
+	m.Set(1<<62, unsafe.Pointer(monkey))
 	s = m.String()
 	if s != "[0,4611686018427387904]" {
 		t.Error("2 item map as string does not match.")
@@ -151,8 +151,8 @@ func TestDelete(t *testing.T) {
 
 	elephant := &Animal{"elephant"}
 	monkey := &Animal{"monkey"}
-	m.Add(1, unsafe.Pointer(elephant))
-	m.Add(2, unsafe.Pointer(monkey))
+	m.Set(1, unsafe.Pointer(elephant))
+	m.Set(2, unsafe.Pointer(monkey))
 	m.Del(0)
 	m.Del(3)
 	if m.Len() != 2 {

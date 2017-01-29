@@ -55,31 +55,31 @@ func (m *HashMap) Fillrate() uint64 {
 	return (count * 100) / sliceLen
 }
 
-func (m *HashMap) getSliceItemForKey(key uint64) *ListElement {
+func (m *HashMap) getSliceItemForKey(hashKey uint64) *ListElement {
 	mapData := (*hashMapData)(atomic.LoadPointer(&m.mapData))
-	index := key >> mapData.keyRightShifts
+	index := hashKey >> mapData.keyRightShifts
 	sliceDataIndexPointer := (*unsafe.Pointer)(unsafe.Pointer(uintptr(mapData.data) + uintptr(index*intSizeBytes)))
 	entry := (*ListElement)(atomic.LoadPointer(sliceDataIndexPointer))
 	return entry
 }
 
-// Get retrieves an element from map under given key.
-func (m *HashMap) Get(key uint64) (unsafe.Pointer, bool) {
-	entry := m.getSliceItemForKey(key)
+// Get retrieves an element from the map under given hash key.
+func (m *HashMap) Get(hashedKey uint64) (unsafe.Pointer, bool) {
+	entry := m.getSliceItemForKey(hashedKey)
 
 	for {
 		if entry == nil {
 			return nil, false
 		}
 
-		if entry.keyHash == key {
+		if entry.keyHash == hashedKey {
 			if atomic.LoadUint64(&entry.deleted) == 0 {
 				return entry.value, true
 			}
 			return nil, false
 		}
 
-		if entry.keyHash > key {
+		if entry.keyHash > hashedKey {
 			return nil, false
 		}
 
@@ -87,21 +87,21 @@ func (m *HashMap) Get(key uint64) (unsafe.Pointer, bool) {
 	}
 }
 
-// Del deletes the key from the map.
-func (m *HashMap) Del(key uint64) {
-	entry := m.getSliceItemForKey(key)
+// Del deletes the hashed key from the map.
+func (m *HashMap) Del(hashedKey uint64) {
+	entry := m.getSliceItemForKey(hashedKey)
 
 	for {
 		if entry == nil {
 			return
 		}
 
-		if entry.keyHash == key {
+		if entry.keyHash == hashedKey {
 			m.linkedList.Delete(entry)
 			return
 		}
 
-		if entry.keyHash > key {
+		if entry.keyHash > hashedKey {
 			return
 		}
 
@@ -109,16 +109,17 @@ func (m *HashMap) Del(key uint64) {
 	}
 }
 
-// Add adds the value under the specified key to the map. An existing item for this key will be overwritten.
-func (m *HashMap) Add(key uint64, value unsafe.Pointer) {
+// Set sets the value under the specified hash key to the map. An existing item for this key will be overwritten.
+// Do not use non hashes as keys for this function, the performance would decrease!
+func (m *HashMap) Set(hashedKey uint64, value unsafe.Pointer) {
 	newEntry := &ListElement{
-		keyHash: key,
+		keyHash: hashedKey,
 		value:   value,
 	}
 
 	for {
 		mapData := (*hashMapData)(atomic.LoadPointer(&m.mapData))
-		index := key >> mapData.keyRightShifts
+		index := hashedKey >> mapData.keyRightShifts
 		sliceDataIndexPointer := (*unsafe.Pointer)(unsafe.Pointer(uintptr(mapData.data) + uintptr(index*intSizeBytes)))
 
 		sliceItem := (*ListElement)(atomic.LoadPointer(sliceDataIndexPointer))
@@ -206,7 +207,7 @@ func (m *HashMap) grow(newSize uint64) {
 	atomic.StorePointer(&m.mapData, unsafe.Pointer(newMapData))
 }
 
-// String returns the map as a string, only keys are printed
+// String returns the map as a string, only hashed keys are printed
 func (m *HashMap) String() string {
 	buffer := bytes.NewBufferString("")
 	buffer.WriteRune('[')
