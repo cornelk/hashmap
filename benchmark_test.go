@@ -16,7 +16,7 @@ func setupHashMap(b *testing.B) *HashMap {
 	for i := uint64(0); i < benchmarkItemCount; i++ {
 		hash := i << (64 - log)
 		j := uintptr(i)
-		m.Set(hash, unsafe.Pointer(&j))
+		m.SetHashedKey(hash, unsafe.Pointer(&j))
 	}
 
 	b.StartTimer()
@@ -41,7 +41,7 @@ func BenchmarkReadHashMap(b *testing.B) {
 		for pb.Next() {
 			for i := uint64(0); i < benchmarkItemCount; i++ {
 				hash := i << (64 - log)
-				j, _ := m.Get(hash)
+				j, _ := m.GetHashedKey(hash)
 				if *(*uint64)(j) != i {
 					b.Fail()
 				}
@@ -91,7 +91,7 @@ func BenchmarkWriteHashMap(b *testing.B) {
 			for i := uint64(0); i < benchmarkItemCount; i++ {
 				hash := i << (64 - log)
 				j := uintptr(i)
-				m.Set(hash, unsafe.Pointer(&j))
+				m.SetHashedKey(hash, unsafe.Pointer(&j))
 			}
 		}
 	})

@@ -1,7 +1,11 @@
 package hashmap
 
 import (
+	"reflect"
 	"strconv"
+	"unsafe"
+
+	"github.com/dchest/siphash"
 )
 
 // intSizeBytes is the size in byte of an int or uint value.
@@ -27,4 +31,45 @@ func log2(i uint64) uint64 {
 		n++
 	}
 	return n
+}
+
+func getKeyHash(key interface{}) uint64 {
+	var num uint64
+	v := reflect.ValueOf(key)
+
+	switch reflect.TypeOf(key).Kind() {
+	case reflect.Bool:
+		if v.Bool() {
+			return 1
+		}
+		return 0
+
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		num = uint64(v.Int())
+
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+		num = uint64(v.Uint())
+
+	case reflect.String:
+		s := key.(string)
+		sh := (*reflect.StringHeader)(unsafe.Pointer(&s))
+		bh := reflect.SliceHeader{
+			Data: sh.Data,
+			Len:  sh.Len,
+			Cap:  sh.Len,
+		}
+		buf := *(*[]byte)(unsafe.Pointer(&bh))
+		return siphash.Hash(1, 2, buf)
+
+	default:
+		panic("unsupported key type")
+	}
+
+	bh := reflect.SliceHeader{
+		Data: uintptr(unsafe.Pointer(&num)),
+		Len:  8,
+		Cap:  8,
+	}
+	buf := *(*[]byte)(unsafe.Pointer(&bh))
+	return siphash.Hash(1, 2, buf)
 }

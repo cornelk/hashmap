@@ -74,7 +74,34 @@ func (m *HashMap) getSliceItemForKey(hashedKey uint64) (mapData *hashMapData, it
 }
 
 // Get retrieves an element from the map under given hash key.
-func (m *HashMap) Get(hashedKey uint64) (unsafe.Pointer, bool) {
+func (m *HashMap) Get(key interface{}) (unsafe.Pointer, bool) {
+	hashedKey := getKeyHash(key)
+
+	// inline HashMap.getSliceItemForKey()
+	mapData := (*hashMapData)(atomic.LoadPointer(&m.mapDataPtr))
+	index := hashedKey >> mapData.keyRightShifts
+	sliceDataIndexPointer := (*unsafe.Pointer)(unsafe.Pointer(uintptr(mapData.data) + uintptr(index*intSizeBytes)))
+	entry := (*ListElement)(atomic.LoadPointer(sliceDataIndexPointer))
+
+	for entry != nil {
+		if entry.keyHash == hashedKey && entry.key == key {
+			if atomic.LoadUint64(&entry.deleted) == 1 { // inline ListElement.Deleted()
+				return nil, false
+			}
+			return atomic.LoadPointer(&entry.value), true // inline ListElement.Value()
+		}
+
+		if entry.keyHash > hashedKey {
+			return nil, false
+		}
+
+		entry = (*ListElement)(atomic.LoadPointer(&entry.nextElement)) // inline ListElement.Next()
+	}
+	return nil, false
+}
+
+// GetHashedKey retrieves an element from the map under given hashed key.
+func (m *HashMap) GetHashedKey(hashedKey uint64) (unsafe.Pointer, bool) {
 	// inline HashMap.getSliceItemForKey()
 	mapData := (*hashMapData)(atomic.LoadPointer(&m.mapDataPtr))
 	index := hashedKey >> mapData.keyRightShifts
@@ -99,7 +126,22 @@ func (m *HashMap) Get(hashedKey uint64) (unsafe.Pointer, bool) {
 }
 
 // Del deletes the hashed key from the map.
-func (m *HashMap) Del(hashedKey uint64) {
+func (m *HashMap) Del(key interface{}) {
+	hashedKey := getKeyHash(key)
+	for _, entry := m.getSliceItemForKey(hashedKey); entry != nil; entry = entry.Next() {
+		if entry.keyHash == hashedKey && entry.key == key {
+			m.linkedList.Delete(entry)
+			return
+		}
+
+		if entry.keyHash > hashedKey {
+			return
+		}
+	}
+}
+
+// DelHashedKey deletes the hashed key from the map.
+func (m *HashMap) DelHashedKey(hashedKey uint64) {
 	for _, entry := m.getSliceItemForKey(hashedKey); entry != nil; entry = entry.Next() {
 		if entry.keyHash == hashedKey {
 			m.linkedList.Delete(entry)
@@ -113,17 +155,36 @@ func (m *HashMap) Del(hashedKey uint64) {
 }
 
 // Set sets the value under the specified hash key to the map. An existing item for this key will be overwritten.
+// If a resizing operation is happening concurrently while calling Set, the item might show up in the map only after the resize operation is finished.
+func (m *HashMap) Set(key interface{}, value unsafe.Pointer) {
+	hashedKey := getKeyHash(key)
+
+	newEntry := &ListElement{
+		key:     key,
+		keyHash: hashedKey,
+		value:   value,
+	}
+
+	m.insertListElement(newEntry)
+}
+
+// SetHashedKey sets the value under the specified hash key to the map. An existing item for this key will be overwritten.
+// You can use this function if your keys are already hashes and you want to avoid another hashing of the key.
 // Do not use non hashes as keys for this function, the performance would decrease!
 // If a resizing operation is happening concurrently while calling Set, the item might show up in the map only after the resize operation is finished.
-func (m *HashMap) Set(hashedKey uint64, value unsafe.Pointer) {
+func (m *HashMap) SetHashedKey(hashedKey uint64, value unsafe.Pointer) {
 	newEntry := &ListElement{
 		key:     hashedKey,
 		keyHash: hashedKey,
 		value:   value,
 	}
 
+	m.insertListElement(newEntry)
+}
+
+func (m *HashMap) insertListElement(newEntry *ListElement) {
 	for {
-		mapData, sliceItem := m.getSliceItemForKey(hashedKey)
+		mapData, sliceItem := m.getSliceItemForKey(newEntry.keyHash)
 		if !m.linkedList.Add(newEntry, sliceItem) {
 			continue // a concurrent add did interfere, try again
 		}
