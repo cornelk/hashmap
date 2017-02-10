@@ -146,6 +146,37 @@ func (m *HashMap) Set(hashedKey uint64, value unsafe.Pointer) {
 	}
 }
 
+func (m *HashMap) Cas(hashedKey uint64, from, to unsafe.Pointer) bool {
+	newEntry := &ListElement{
+		key:     hashedKey,
+		keyHash: hashedKey,
+		value:   to,
+	}
+
+	for {
+		mapData, sliceItem := m.getSliceItemForKey(hashedKey)
+		if !m.linkedList.Cas(newEntry, from, sliceItem) {
+			return false
+		}
+
+		newSliceCount := mapData.addItemToIndex(newEntry)
+		if newSliceCount != 0 {
+			sliceLen := uint64(len(mapData.slice))
+			fillRate := (newSliceCount * 100) / sliceLen
+
+			if fillRate > MaxFillRate { // check if the slice needs to be resized
+				m.Lock()
+				currentMapData := m.mapData()
+				if mapData == currentMapData { // double check that no other resize happened
+					m.grow(0)
+				}
+				m.Unlock()
+			}
+		}
+		return true
+	}
+}
+
 // adds an item to the index if needed and returns the new item counter if it changed, otherwise 0
 func (mapData *hashMapData) addItemToIndex(item *ListElement) uint64 {
 	index := item.keyHash >> mapData.keyRightShifts

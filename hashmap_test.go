@@ -199,3 +199,28 @@ func TestIterator(t *testing.T) {
 		t.Error("Returned item count did not match.")
 	}
 }
+
+func TestCompareAndSwap(t *testing.T) {
+	m := New()
+	elephant := &Animal{"elephant"}
+	monkey := &Animal{"monkey"}
+
+	m.Set(1<<62, unsafe.Pointer(elephant))
+	if m.Len() != 1 {
+		t.Error("map should contain exactly one element.")
+	}
+	if !m.Cas(1<<62, unsafe.Pointer(elephant), unsafe.Pointer(monkey)) {
+		t.Error("Cas should success if expectation met")
+	}
+	if m.Cas(1<<62, unsafe.Pointer(elephant), unsafe.Pointer(monkey)) {
+		t.Error("Cas should fail if expectation didn't meet")
+	}
+	tmp, ok := m.Get(1 << 62)
+	if ok == false {
+		t.Error("ok should be true for item stored within the map.")
+	}
+	item := (*Animal)(tmp)
+	if item != monkey {
+		t.Error("wrong item returned.")
+	}
+}

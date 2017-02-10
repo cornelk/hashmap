@@ -41,3 +41,8 @@ func (e *ListElement) SetDeleted(deleted bool) bool {
 func (e *ListElement) SetValue(value unsafe.Pointer) {
 	atomic.StorePointer(&e.value, value)
 }
+
+// CasValue compares and swaps the values of the item.
+func (e *ListElement) CasValue(from, to unsafe.Pointer) bool {
+	return atomic.CompareAndSwapPointer(&e.value, from, to)
+}
