@@ -126,14 +126,14 @@ func TestStringer(t *testing.T) {
 
 	m.Set(0, unsafe.Pointer(elephant))
 	s = m.String()
-	if s != "[15738495304338208688]" {
-		t.Error("1 item map as string does not match.")
+	if s != "[9257401834698437112]" {
+		t.Error("1 item map as string does not match:", s)
 	}
 
 	m.Set(1, unsafe.Pointer(monkey))
 	s = m.String()
-	if s != "[15738495304338208688,16484950627879272164]" {
-		t.Error("2 item map as string does not match.")
+	if s != "[1754102016959854353,9257401834698437112]" {
+		t.Error("2 item map as string does not match:", s)
 	}
 }
 
