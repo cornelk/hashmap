@@ -23,7 +23,10 @@ func benchmarkHash(b *testing.B, hash func() hash.Hash, length int64) {
 
 	for i := 0; i < b.N; i++ {
 		h := hash()
-		h.Write(data[:])
+		_, err := h.Write(data[:])
+		if err != nil {
+			panic(err)
+		}
 		h.Sum(nil)
 	}
 }
@@ -34,7 +37,10 @@ func benchmarkHash64(b *testing.B, hash func() hash.Hash64, length int64) {
 
 	for i := 0; i < b.N; i++ {
 		h := hash()
-		h.Write(data[:])
+		_, err := h.Write(data[:])
+		if err != nil {
+			panic(err)
+		}
 		h.Sum(nil)
 	}
 }
@@ -46,7 +52,10 @@ func benchmarkHashKeyError(b *testing.B, hash func([]byte) (hash.Hash, error), l
 
 	for i := 0; i < b.N; i++ {
 		h, _ := hash(key)
-		h.Write(data[:])
+		_, err := h.Write(data[:])
+		if err != nil {
+			panic(err)
+		}
 		h.Sum(nil)
 	}
 }
@@ -58,7 +67,10 @@ func benchmarkHashKey64(b *testing.B, hash func([]byte) hash.Hash64, length int6
 
 	for i := 0; i < b.N; i++ {
 		h := hash(key)
-		h.Write(data[:])
+		_, err := h.Write(data[:])
+		if err != nil {
+			panic(err)
+		}
 		h.Sum(nil)
 	}
 }

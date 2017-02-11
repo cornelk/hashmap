@@ -55,7 +55,7 @@ func getKeyHash(key interface{}) uint64 {
 		num = uint64(v.Int())
 
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
-		num = uint64(v.Uint())
+		num = v.Uint()
 
 	case reflect.String:
 		s := key.(string)

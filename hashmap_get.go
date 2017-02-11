@@ -39,9 +39,8 @@ func (m *HashMap) Get(key interface{}) (unsafe.Pointer, bool) {
 
 // GetUintKey retrieves an element from the map under given integer key.
 func (m *HashMap) GetUintKey(key uint64) (unsafe.Pointer, bool) {
-	i := uint64(key)
 	bh := reflect.SliceHeader{
-		Data: uintptr(unsafe.Pointer(&i)),
+		Data: uintptr(unsafe.Pointer(&key)),
 		Len:  8,
 		Cap:  8,
 	}

@@ -35,7 +35,7 @@ func TestOverwrite(t *testing.T) {
 	}
 
 	tmp, ok := m.Get(1) // Retrieve inserted element.
-	if ok == false {
+	if !ok {
 		t.Error("ok should be true for item stored within the map.")
 	}
 
@@ -65,7 +65,7 @@ func TestGet(t *testing.T) {
 	elephant := "elephant"
 
 	val, ok := m.Get("animal") // Get a missing element.
-	if ok == true {
+	if ok {
 		t.Error("ok should be false when item is missing from map.")
 	}
 	if val != nil {
@@ -75,12 +75,12 @@ func TestGet(t *testing.T) {
 	m.Set("animal", unsafe.Pointer(&elephant))
 
 	_, ok = m.Get("human") // Get a missing element.
-	if ok == true {
+	if ok {
 		t.Error("ok should be false when item is missing from map.")
 	}
 
 	val, ok = m.Get("animal") // Retrieve inserted element.
-	if ok == false {
+	if !ok {
 		t.Error("ok should be true for item stored within the map.")
 	}
 
@@ -159,7 +159,7 @@ func TestDelete(t *testing.T) {
 	}
 
 	val, ok := m.Get(1) // Get a missing element.
-	if ok == true {
+	if ok {
 		t.Error("ok should be false when item is missing from map.")
 	}
 	if val != nil {

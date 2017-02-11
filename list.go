@@ -41,8 +41,8 @@ func (l *List) Add(newElement *ListElement, searchStart *ListElement) bool {
 
 	left, found, right := l.search(searchStart, newElement)
 	if found != nil { // existing item found
-		found.SetValue(unsafe.Pointer(newElement.value)) // update the value
-		if found.SetDeleted(false) {                     // try to mark from deleted to not deleted
+		found.SetValue(newElement.value) // update the value
+		if found.SetDeleted(false) {     // try to mark from deleted to not deleted
 			atomic.AddUint64(&l.count, 1)
 		}
 		return true
@@ -103,5 +103,5 @@ func (l *List) Delete(element *ListElement) {
 	}
 
 	element.SetValue(nil) // clear the value for the GC
-	atomic.AddUint64(&l.count, ^uint64(1-1))
+	atomic.AddUint64(&l.count, ^uint64(0))
 }

@@ -163,7 +163,7 @@ func (mapData *hashMapData) addItemToIndex(item *ListElement) uint64 {
 	for { // loop until the smallest key hash is in the index
 		sliceItem := (*ListElement)(atomic.LoadPointer(sliceDataIndexPointer)) // get the current item in the index
 		if sliceItem == nil {                                                  // no item yet at this index
-			if atomic.CompareAndSwapPointer((*unsafe.Pointer)(sliceDataIndexPointer), nil, unsafe.Pointer(item)) {
+			if atomic.CompareAndSwapPointer(sliceDataIndexPointer, nil, unsafe.Pointer(item)) {
 				return atomic.AddUint64(&mapData.count, 1)
 			}
 			continue // a new item was inserted concurrently, retry
@@ -171,7 +171,7 @@ func (mapData *hashMapData) addItemToIndex(item *ListElement) uint64 {
 
 		if item.keyHash < sliceItem.keyHash {
 			// the new item is the smallest for this index?
-			if !atomic.CompareAndSwapPointer((*unsafe.Pointer)(sliceDataIndexPointer), unsafe.Pointer(sliceItem), unsafe.Pointer(item)) {
+			if !atomic.CompareAndSwapPointer(sliceDataIndexPointer, unsafe.Pointer(sliceItem), unsafe.Pointer(item)) {
 				continue // a new item was inserted concurrently, retry
 			}
 		}
