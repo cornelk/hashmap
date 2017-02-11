@@ -73,58 +73,6 @@ func (m *HashMap) getSliceItemForKey(hashedKey uint64) (mapData *hashMapData, it
 	return
 }
 
-// Get retrieves an element from the map under given hash key.
-func (m *HashMap) Get(key interface{}) (unsafe.Pointer, bool) {
-	hashedKey := getKeyHash(key)
-
-	// inline HashMap.getSliceItemForKey()
-	mapData := (*hashMapData)(atomic.LoadPointer(&m.mapDataPtr))
-	index := hashedKey >> mapData.keyRightShifts
-	sliceDataIndexPointer := (*unsafe.Pointer)(unsafe.Pointer(uintptr(mapData.data) + uintptr(index*intSizeBytes)))
-	entry := (*ListElement)(atomic.LoadPointer(sliceDataIndexPointer))
-
-	for entry != nil {
-		if entry.keyHash == hashedKey && entry.key == key {
-			if atomic.LoadUint64(&entry.deleted) == 1 { // inline ListElement.Deleted()
-				return nil, false
-			}
-			return atomic.LoadPointer(&entry.value), true // inline ListElement.Value()
-		}
-
-		if entry.keyHash > hashedKey {
-			return nil, false
-		}
-
-		entry = (*ListElement)(atomic.LoadPointer(&entry.nextElement)) // inline ListElement.Next()
-	}
-	return nil, false
-}
-
-// GetHashedKey retrieves an element from the map under given hashed key.
-func (m *HashMap) GetHashedKey(hashedKey uint64) (unsafe.Pointer, bool) {
-	// inline HashMap.getSliceItemForKey()
-	mapData := (*hashMapData)(atomic.LoadPointer(&m.mapDataPtr))
-	index := hashedKey >> mapData.keyRightShifts
-	sliceDataIndexPointer := (*unsafe.Pointer)(unsafe.Pointer(uintptr(mapData.data) + uintptr(index*intSizeBytes)))
-	entry := (*ListElement)(atomic.LoadPointer(sliceDataIndexPointer))
-
-	for entry != nil {
-		if entry.keyHash == hashedKey {
-			if atomic.LoadUint64(&entry.deleted) == 1 { // inline ListElement.Deleted()
-				return nil, false
-			}
-			return atomic.LoadPointer(&entry.value), true // inline ListElement.Value()
-		}
-
-		if entry.keyHash > hashedKey {
-			return nil, false
-		}
-
-		entry = (*ListElement)(atomic.LoadPointer(&entry.nextElement)) // inline ListElement.Next()
-	}
-	return nil, false
-}
-
 // Del deletes the hashed key from the map.
 func (m *HashMap) Del(key interface{}) {
 	hashedKey := getKeyHash(key)
