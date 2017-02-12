@@ -51,6 +51,30 @@ func (l *List) Add(newElement *ListElement, searchStart *ListElement) bool {
 	return l.insertAt(newElement, left, right)
 }
 
+// Cas compares and swaps the values and add an item to the list.
+func (l *List) Cas(newElement *ListElement, oldValue unsafe.Pointer, searchStart *ListElement) bool {
+	if searchStart == nil || newElement.keyHash < searchStart.keyHash { // key needs to be inserted on the left? {
+		searchStart = l.root
+	}
+
+	left, found, right := l.search(searchStart, newElement)
+	if found != nil { // existing item found
+		if found.CasValue(oldValue, unsafe.Pointer(newElement.value)) {
+			if found.SetDeleted(false) {
+				// try to mark from deleted to not deleted
+				atomic.AddUint64(&l.count, 1)
+			}
+			return true
+		}else{
+			return false
+		}
+	} else if oldValue == nil {
+		return l.insertAt(newElement, left, right)
+	} else {
+		return false
+	}
+}
+
 func (l *List) search(searchStart *ListElement, item *ListElement) (left *ListElement, found *ListElement, right *ListElement) {
 	if searchStart == l.root {
 		found = searchStart.Next()
