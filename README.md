@@ -4,6 +4,9 @@
 
 A Golang thread-safe HashMap optimized for fastest lock-free read access on 64 bit systems.
 
+## Benchmarks
+
+The benchmarks are run with Golang 1.7.4 on MacOS and amd64 architecture.
 Reading from the hash map in a thread-safe way is faster than reading from standard Golang map in an unsafe way:
 
 ```
@@ -24,6 +27,21 @@ The API uses [unsafe.Pointer](https://golang.org/pkg/unsafe/#Pointer) instead of
 ```
 BenchmarkUnsafePointer-8     	20000000	       107 ns/op
 BenchmarkInterface-8         	10000000	       128 ns/op
+```
+
+Hashing algorithm benchmark:
+
+```
+BenchmarkComparisonMD5-8           	 5000000	       257 ns/op	  31.06 MB/s
+BenchmarkComparisonSHA1-8          	 5000000	       313 ns/op	  25.51 MB/s
+BenchmarkComparisonSHA256-8        	 3000000	       562 ns/op	  14.22 MB/s
+BenchmarkComparisonSHA3B224-8      	 1000000	      1359 ns/op	   5.88 MB/s
+BenchmarkComparisonSHA3B256-8      	 1000000	      1579 ns/op	   5.06 MB/s
+BenchmarkComparisonRIPEMD160-8     	 1000000	      1106 ns/op	   7.23 MB/s
+BenchmarkComparisonBlake2B-8       	 2000000	       717 ns/op	  11.14 MB/s
+BenchmarkComparisonBlake2BSimd-8   	 2000000	       628 ns/op	  12.73 MB/s
+BenchmarkComparisonMurmur3-8       	10000000	       139 ns/op	  57.47 MB/s
+BenchmarkComparisonSipHash-8       	10000000	       127 ns/op	  62.95 MB/s
 ```
 
 ## Technical details

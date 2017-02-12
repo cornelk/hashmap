@@ -1,0 +1,43 @@
+{
+	"comment": "",
+	"ignore": "test",
+	"package": [
+		{
+			"checksumSHA1": "xqVDKHGnakGlcRhmWd1j9JYmfLc=",
+			"path": "github.com/dchest/siphash",
+			"revision": "4ebf1de738443ea7f45f02dc394c4df1942a126d",
+			"revisionTime": "2016-08-31T15:17:26Z"
+		},
+		{
+			"checksumSHA1": "mJQtsTCZGhCmjdFtXBWryZSri/o=",
+			"path": "github.com/minio/blake2b-simd",
+			"revision": "3f5f724cb5b182a5c278d6d3d55b40e7f8c2efb4",
+			"revisionTime": "2016-07-23T06:10:19Z"
+		},
+		{
+			"checksumSHA1": "bbilAC3Am0MP1lPfSKblFsIvg4Q=",
+			"path": "github.com/spaolacci/murmur3",
+			"revision": "0d12bf811670bf6a1a63828dfbd003eded177fce",
+			"revisionTime": "2015-08-29T17:28:44Z"
+		},
+		{
+			"checksumSHA1": "FZQEdq4axGzxfrzfMy2DeYtE8ok=",
+			"path": "golang.org/x/crypto/blake2b",
+			"revision": "bed12803fa9663d7aa2c2346b0c634ad2dcd43b7",
+			"revisionTime": "2017-02-01T20:15:17Z"
+		},
+		{
+			"checksumSHA1": "y/oIaxq2d3WPizRZfVjo8RCRYTU=",
+			"path": "golang.org/x/crypto/ripemd160",
+			"revision": "bed12803fa9663d7aa2c2346b0c634ad2dcd43b7",
+			"revisionTime": "2017-02-01T20:15:17Z"
+		},
+		{
+			"checksumSHA1": "DDHnuGCrmkKSXdNzc8pmn6P5O28=",
+			"path": "golang.org/x/crypto/sha3",
+			"revision": "bed12803fa9663d7aa2c2346b0c634ad2dcd43b7",
+			"revisionTime": "2017-02-01T20:15:17Z"
+		}
+	],
+	"rootPath": "github.com/cornelk/hashmap"
+}

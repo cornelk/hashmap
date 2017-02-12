@@ -73,33 +73,23 @@ func (m *HashMap) getSliceItemForKey(hashedKey uint64) (mapData *hashMapData, it
 	return
 }
 
-// Get retrieves an element from the map under given hash key.
-func (m *HashMap) Get(hashedKey uint64) (unsafe.Pointer, bool) {
-	// inline HashMap.getSliceItemForKey()
-	mapData := (*hashMapData)(atomic.LoadPointer(&m.mapDataPtr))
-	index := hashedKey >> mapData.keyRightShifts
-	sliceDataIndexPointer := (*unsafe.Pointer)(unsafe.Pointer(uintptr(mapData.data) + uintptr(index*intSizeBytes)))
-	entry := (*ListElement)(atomic.LoadPointer(sliceDataIndexPointer))
-
-	for entry != nil {
-		if entry.keyHash == hashedKey {
-			if atomic.LoadUint64(&entry.deleted) == 1 { // inline ListElement.Deleted()
-				return nil, false
-			}
-			return atomic.LoadPointer(&entry.value), true // inline ListElement.Value()
+// Del deletes the hashed key from the map.
+func (m *HashMap) Del(key interface{}) {
+	hashedKey := getKeyHash(key)
+	for _, entry := m.getSliceItemForKey(hashedKey); entry != nil; entry = entry.Next() {
+		if entry.keyHash == hashedKey && entry.key == key {
+			m.linkedList.Delete(entry)
+			return
 		}
 
 		if entry.keyHash > hashedKey {
-			return nil, false
+			return
 		}
-
-		entry = (*ListElement)(atomic.LoadPointer(&entry.nextElement)) // inline ListElement.Next()
 	}
-	return nil, false
 }
 
-// Del deletes the hashed key from the map.
-func (m *HashMap) Del(hashedKey uint64) {
+// DelHashedKey deletes the hashed key from the map.
+func (m *HashMap) DelHashedKey(hashedKey uint64) {
 	for _, entry := m.getSliceItemForKey(hashedKey); entry != nil; entry = entry.Next() {
 		if entry.keyHash == hashedKey {
 			m.linkedList.Delete(entry)
@@ -113,17 +103,36 @@ func (m *HashMap) Del(hashedKey uint64) {
 }
 
 // Set sets the value under the specified hash key to the map. An existing item for this key will be overwritten.
+// If a resizing operation is happening concurrently while calling Set, the item might show up in the map only after the resize operation is finished.
+func (m *HashMap) Set(key interface{}, value unsafe.Pointer) {
+	hashedKey := getKeyHash(key)
+
+	newEntry := &ListElement{
+		key:     key,
+		keyHash: hashedKey,
+		value:   value,
+	}
+
+	m.insertListElement(newEntry)
+}
+
+// SetHashedKey sets the value under the specified hash key to the map. An existing item for this key will be overwritten.
+// You can use this function if your keys are already hashes and you want to avoid another hashing of the key.
 // Do not use non hashes as keys for this function, the performance would decrease!
 // If a resizing operation is happening concurrently while calling Set, the item might show up in the map only after the resize operation is finished.
-func (m *HashMap) Set(hashedKey uint64, value unsafe.Pointer) {
+func (m *HashMap) SetHashedKey(hashedKey uint64, value unsafe.Pointer) {
 	newEntry := &ListElement{
 		key:     hashedKey,
 		keyHash: hashedKey,
 		value:   value,
 	}
 
+	m.insertListElement(newEntry)
+}
+
+func (m *HashMap) insertListElement(newEntry *ListElement) {
 	for {
-		mapData, sliceItem := m.getSliceItemForKey(hashedKey)
+		mapData, sliceItem := m.getSliceItemForKey(newEntry.keyHash)
 		if !m.linkedList.Add(newEntry, sliceItem) {
 			continue // a concurrent add did interfere, try again
 		}
@@ -185,7 +194,7 @@ func (mapData *hashMapData) addItemToIndex(item *ListElement) uint64 {
 	for { // loop until the smallest key hash is in the index
 		sliceItem := (*ListElement)(atomic.LoadPointer(sliceDataIndexPointer)) // get the current item in the index
 		if sliceItem == nil {                                                  // no item yet at this index
-			if atomic.CompareAndSwapPointer((*unsafe.Pointer)(sliceDataIndexPointer), nil, unsafe.Pointer(item)) {
+			if atomic.CompareAndSwapPointer(sliceDataIndexPointer, nil, unsafe.Pointer(item)) {
 				return atomic.AddUint64(&mapData.count, 1)
 			}
 			continue // a new item was inserted concurrently, retry
@@ -193,7 +202,7 @@ func (mapData *hashMapData) addItemToIndex(item *ListElement) uint64 {
 
 		if item.keyHash < sliceItem.keyHash {
 			// the new item is the smallest for this index?
-			if !atomic.CompareAndSwapPointer((*unsafe.Pointer)(sliceDataIndexPointer), unsafe.Pointer(sliceItem), unsafe.Pointer(item)) {
+			if !atomic.CompareAndSwapPointer(sliceDataIndexPointer, unsafe.Pointer(sliceItem), unsafe.Pointer(item)) {
 				continue // a new item was inserted concurrently, retry
 			}
 		}
