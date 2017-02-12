@@ -57,22 +57,18 @@ func (l *List) Cas(newElement *ListElement, oldValue unsafe.Pointer, searchStart
 		searchStart = l.root
 	}
 
-	left, found, right := l.search(searchStart, newElement)
-	if found != nil { // existing item found
-		if found.CasValue(oldValue, unsafe.Pointer(newElement.value)) {
-			if found.SetDeleted(false) {
-				// try to mark from deleted to not deleted
-				atomic.AddUint64(&l.count, 1)
-			}
-			return true
-		}else{
-			return false
-		}
-	} else if oldValue == nil {
-		return l.insertAt(newElement, left, right)
-	} else {
+	_, found, _ := l.search(searchStart, newElement)
+	if found == nil { // no existing item found
 		return false
 	}
+
+	if found.CasValue(oldValue, newElement.value) {
+		if found.SetDeleted(false) {
+			atomic.AddUint64(&l.count, 1) // try to mark from deleted to not deleted
+		}
+		return true
+	}
+	return false
 }
 
 func (l *List) search(searchStart *ListElement, item *ListElement) (left *ListElement, found *ListElement, right *ListElement) {

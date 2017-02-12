@@ -155,7 +155,8 @@ func (m *HashMap) insertListElement(newEntry *ListElement) {
 	}
 }
 
-func (m *HashMap) Cas(hashedKey uint64, from, to unsafe.Pointer) bool {
+// CasHashedKey performs a compare and swap operation sets the value under the specified hash key to the map. An existing item for this key will be overwritten.
+func (m *HashMap) CasHashedKey(hashedKey uint64, from, to unsafe.Pointer) bool {
 	newEntry := &ListElement{
 		key:     hashedKey,
 		keyHash: hashedKey,
