@@ -20,8 +20,8 @@ BenchmarkReadGoSyncMapUint-8              	   50000	     27512 ns/op
 If the keys of the map are already hashes, no extra hashing needs to be done by the map:
 
 ```
+BenchmarkReadHashMapHashedKey-8           	  300000	      4148 ns/op
 ```
-
 
 Reading from the map while writes are happening:
 ```
