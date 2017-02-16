@@ -37,6 +37,12 @@
 			"path": "golang.org/x/crypto/sha3",
 			"revision": "bed12803fa9663d7aa2c2346b0c634ad2dcd43b7",
 			"revisionTime": "2017-02-01T20:15:17Z"
+		},
+		{
+			"checksumSHA1": "zSvOQ+rvE/oDTDaXAgPzYmQS+dI=",
+			"path": "golang.org/x/sync/syncmap",
+			"revision": "54b13b0b037d2b3593991a7fa23d3f274669aab7",
+			"revisionTime": "2016-12-03T00:16:14Z"
 		}
 	],
 	"rootPath": "github.com/cornelk/hashmap"
