@@ -350,4 +350,3 @@ func BenchmarkWriteGoSyncMapUint(b *testing.B) {
 		}
 	}
 }
-
