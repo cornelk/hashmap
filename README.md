@@ -6,36 +6,37 @@ A Golang thread-safe HashMap optimized for fastest lock-free read access on 64 b
 
 ## Benchmarks
 
-The benchmarks were run with Golang 1.7.5 on MacOS.
+The benchmarks were run with Golang 1.8 on MacOS.
 
-Reading from the hash map without any concurrent writes, slightly slower than reading from a standard Golang map in a non thread-safe way:
+Reading from the hash map in a thread-safe way is faster than reading from a standard Golang map in an unsafe way:
+
 
 ```
-BenchmarkReadHashMapUint-8                	  200000	     10237 ns/op
-BenchmarkReadGoMapUintUnsafe-8            	  200000	      6214 ns/op
-BenchmarkReadGoMapUintMutex-8             	   30000	     60214 ns/op
-BenchmarkReadGoSyncMapUint-8              	   50000	     27512 ns/op
+BenchmarkReadHashMapUint-8                	  200000	      6420 ns/op
+BenchmarkReadGoMapUintUnsafe-8            	  200000	      6559 ns/op
+BenchmarkReadGoMapUintMutex-8             	   30000	     43066 ns/op
+BenchmarkReadGoSyncMapUint-8              	  100000	     16713 ns/op
 ```
 
 If the keys of the map are already hashes, no extra hashing needs to be done by the map:
 
 ```
-BenchmarkReadHashMapHashedKey-8           	  300000	      4148 ns/op
+BenchmarkReadHashMapHashedKey-8           	 1000000	      1983 ns/op
 ```
 
 Reading from the map while writes are happening:
 ```
-BenchmarkReadHashMapWithWritesUint-8      	  100000	     13735 ns/op
-BenchmarkReadGoMapWithWritesUintMutex-8   	   10000	    192933 ns/op
-BenchmarkReadGoSyncMapWithWritesUint-8    	   30000	     44757 ns/op
+BenchmarkReadHashMapWithWritesUint-8      	  200000	      9011 ns/op
+BenchmarkReadGoMapWithWritesUintMutex-8   	   10000	    154048 ns/op
+BenchmarkReadGoSyncMapWithWritesUint-8    	   50000	     24070 ns/op
 ```
 
 Pure Write performance without any reads:
 
 ```
-BenchmarkWriteHashMapUint-8               	    3000	    529583 ns/op
-BenchmarkWriteGoMapMutexUint-8            	   10000	    139898 ns/op
-BenchmarkWriteGoSyncMapUint-8             	    3000	    433616 ns/op
+BenchmarkWriteHashMapUint-8               	    3000	    449159 ns/op
+BenchmarkWriteGoMapMutexUint-8            	   10000	    104489 ns/op
+BenchmarkWriteGoSyncMapUint-8             	    5000	    293858 ns/op
 ```
 
 ## Technical details
