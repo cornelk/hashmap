@@ -6,7 +6,7 @@ A Golang thread-safe HashMap optimized for fastest lock-free read access on 64 b
 
 ## Benchmarks
 
-The benchmarks are run with Golang 1.7.4 on MacOS and amd64 architecture.
+The benchmarks were run with Golang 1.7.5 on MacOS.
 
 Reading from the hash map without any concurrent writes, slightly slower than reading from a standard Golang map in a non thread-safe way:
 
@@ -40,12 +40,9 @@ BenchmarkWriteGoSyncMapUint-8             	    3000	    433616 ns/op
 
 ## Technical details
 
-* The API uses [unsafe.Pointer](https://golang.org/pkg/unsafe/#Pointer) instead of the common interface{} for the values for faster speed when reading values:
+* Technical design decisions have been made based on benchmarks that are stored in an external repository: [go-benchmark](https://github.com/cornelk/go-benchmark)
 
-```
-BenchmarkUnsafePointer-8                  	 2000000	       671 ns/op
-BenchmarkInterface-8                      	 2000000	       682 ns/op
-```
+* The API uses [unsafe.Pointer](https://golang.org/pkg/unsafe/#Pointer) instead of the common interface{} for the values for faster speed when reading values.
 
 * The library uses a sorted linked list and a slice as an index into that list.
 
