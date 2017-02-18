@@ -109,13 +109,13 @@ func BenchmarkReadHashMapUint(b *testing.B) {
 func BenchmarkReadHashMapWithWritesUint(b *testing.B) {
 	m := setupHashMap(b)
 
-	go func() {
-		for n := 0; n < b.N; n++ {
+	go func(bn int) {
+		for n := 0; n < bn; n++ {
 			for i := uint64(0); i < benchmarkItemCount; i++ {
 				writeHashMap(m, i)
 			}
 		}
-	}()
+	}(b.N)
 
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
@@ -212,13 +212,13 @@ func BenchmarkReadGoMapWithWritesUintMutex(b *testing.B) {
 	m := setupGoMap(b)
 	l := &sync.RWMutex{}
 
-	go func() {
-		for n := 0; n < b.N; n++ {
+	go func(bn int) {
+		for n := 0; n < bn; n++ {
 			for i := uint64(0); i < benchmarkItemCount; i++ {
 				writeGoMap(m, i, l)
 			}
 		}
-	}()
+	}(b.N)
 
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
@@ -251,13 +251,13 @@ func BenchmarkReadGoSyncMapUint(b *testing.B) {
 func BenchmarkReadGoSyncMapWithWritesUint(b *testing.B) {
 	m := setupGoSyncMap(b)
 
-	go func() {
-		for n := 0; n < b.N; n++ {
+	go func(bn int) {
+		for n := 0; n < bn; n++ {
 			for i := uint64(0); i < benchmarkItemCount; i++ {
 				writeGoSyncMap(m, i)
 			}
 		}
-	}()
+	}(b.N)
 
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
