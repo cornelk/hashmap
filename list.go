@@ -33,8 +33,22 @@ func (l *List) First() *ListElement {
 	return nil
 }
 
-// Add adds or updates an item to the list.
-func (l *List) Add(newElement *ListElement, searchStart *ListElement) bool {
+// Add adds an item to the list and returns false if an item for the hash existed.
+func (l *List) Add(newElement *ListElement, searchStart *ListElement) (existed bool, inserted bool) {
+	if searchStart == nil || newElement.keyHash < searchStart.keyHash { // key needs to be inserted on the left? {
+		searchStart = l.root
+	}
+
+	left, found, right := l.search(searchStart, newElement)
+	if found != nil { // existing item found
+		return true, false
+	}
+
+	return false, l.insertAt(newElement, left, right)
+}
+
+// AddOrUpdate adds or updates an item to the list.
+func (l *List) AddOrUpdate(newElement *ListElement, searchStart *ListElement) bool {
 	if searchStart == nil || newElement.keyHash < searchStart.keyHash { // key needs to be inserted on the left? {
 		searchStart = l.root
 	}
@@ -122,6 +136,6 @@ func (l *List) Delete(element *ListElement) {
 		return // element was already deleted
 	}
 
-	element.SetValue(nil) // clear the value for the GC
-	atomic.AddUint64(&l.count, ^uint64(0))
+	element.SetValue(nil)                  // clear the value for the GC
+	atomic.AddUint64(&l.count, ^uint64(0)) // decrease counter
 }

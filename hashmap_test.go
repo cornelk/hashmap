@@ -48,6 +48,26 @@ func TestOverwrite(t *testing.T) {
 }
 
 func TestInsert(t *testing.T) {
+	m := New()
+	c := uint64(16)
+	ok := m.Insert(uint64(128), unsafe.Pointer(&c))
+	if !ok {
+		t.Error("insert did not succeed.")
+	}
+	ok = m.Insert(uint64(128), unsafe.Pointer(&c))
+	if ok {
+		t.Error("insert on existing item did succeed.")
+	}
+	_, ok = m.GetUintKey(128)
+	if !ok {
+		t.Error("ok should be true for item stored within the map.")
+	}
+	if m.Len() != 1 {
+		t.Error("map should contain exactly 1 element.")
+	}
+}
+
+func TestSet(t *testing.T) {
 	m := NewSize(4)
 	elephant := "elephant"
 	monkey := "monkey"
@@ -251,18 +271,23 @@ func TestCompareAndSwap(t *testing.T) {
 func TestAPICounter(t *testing.T) {
 	m := New()
 
-	// initialize all API counter to 0
-	for i := 0; i < 4; i++ {
-		s := fmt.Sprintf("/api%d/", i)
-		c := int64(0)
-		m.Set(s, unsafe.Pointer(&c))
-	}
-
 	for i := 0; i < 100; i++ {
 		s := fmt.Sprintf("/api%d/", i%4)
-		val, _ := m.GetStringKey(s)
-		c := (*int64)(val)
-		atomic.AddInt64(c, 1)
+
+		for {
+			val, ok := m.GetStringKey(s)
+			if !ok { // item does not exist yet
+				c := int64(1)
+				if !m.Insert(s, unsafe.Pointer(&c)) {
+					continue // item was inserted concurrently, try to read it again
+				}
+				break
+			}
+
+			c := (*int64)(val)
+			atomic.AddInt64(c, 1)
+			break
+		}
 	}
 
 	s := fmt.Sprintf("/api%d/", 0)

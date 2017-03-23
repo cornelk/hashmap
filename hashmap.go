@@ -102,7 +102,22 @@ func (m *HashMap) DelHashedKey(hashedKey uint64) {
 	}
 }
 
-// Set sets the value under the specified hash key to the map. An existing item for this key will be overwritten.
+// Insert sets the value under the specified key to the map if it does not exist yet.
+// If a resizing operation is happening concurrently while calling Set, the item might show up in the map only after the resize operation is finished.
+// Returns true if the item was inserted or false if it existed.
+func (m *HashMap) Insert(key interface{}, value unsafe.Pointer) bool {
+	hashedKey := getKeyHash(key)
+
+	newEntry := &ListElement{
+		key:     key,
+		keyHash: hashedKey,
+		value:   value,
+	}
+
+	return m.insertListElement(newEntry, false)
+}
+
+// Set sets the value under the specified key to the map. An existing item for this key will be overwritten.
 // If a resizing operation is happening concurrently while calling Set, the item might show up in the map only after the resize operation is finished.
 func (m *HashMap) Set(key interface{}, value unsafe.Pointer) {
 	hashedKey := getKeyHash(key)
@@ -113,7 +128,7 @@ func (m *HashMap) Set(key interface{}, value unsafe.Pointer) {
 		value:   value,
 	}
 
-	m.insertListElement(newEntry)
+	m.insertListElement(newEntry, true)
 }
 
 // SetHashedKey sets the value under the specified hash key to the map. An existing item for this key will be overwritten.
@@ -127,14 +142,24 @@ func (m *HashMap) SetHashedKey(hashedKey uint64, value unsafe.Pointer) {
 		value:   value,
 	}
 
-	m.insertListElement(newEntry)
+	m.insertListElement(newEntry, true)
 }
 
-func (m *HashMap) insertListElement(newEntry *ListElement) {
+func (m *HashMap) insertListElement(newEntry *ListElement, update bool) bool {
 	for {
 		mapData, sliceItem := m.getSliceItemForKey(newEntry.keyHash)
-		if !m.linkedList.Add(newEntry, sliceItem) {
-			continue // a concurrent add did interfere, try again
+		if update {
+			if !m.linkedList.AddOrUpdate(newEntry, sliceItem) {
+				continue // a concurrent add did interfere, try again
+			}
+		} else {
+			existed, inserted := m.linkedList.Add(newEntry, sliceItem)
+			if existed {
+				return false
+			}
+			if !inserted {
+				continue
+			}
 		}
 
 		newSliceCount := mapData.addItemToIndex(newEntry)
@@ -151,7 +176,7 @@ func (m *HashMap) insertListElement(newEntry *ListElement) {
 				m.Unlock()
 			}
 		}
-		return
+		return true
 	}
 }
 
