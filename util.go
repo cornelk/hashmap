@@ -1,6 +1,7 @@
 package hashmap
 
 import (
+	"fmt"
 	"reflect"
 	"strconv"
 	"unsafe"
@@ -42,24 +43,14 @@ func log2(i uint64) uint64 {
 // getKeyHash returns a 64 bit hash for the key
 func getKeyHash(key interface{}) uint64 {
 	var num uint64
-	v := reflect.ValueOf(key)
-
-	switch reflect.TypeOf(key).Kind() {
-	case reflect.Bool:
-		if v.Bool() {
-			return 1 << 63
+	switch x := key.(type) {
+	case bool:
+		if x {
+			return 1
 		}
 		return 0
-
-	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		num = uint64(v.Int())
-
-	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
-		num = v.Uint()
-
-	case reflect.String:
-		s := key.(string)
-		sh := (*reflect.StringHeader)(unsafe.Pointer(&s))
+	case string:
+		sh := (*reflect.StringHeader)(unsafe.Pointer(&x))
 		bh := reflect.SliceHeader{
 			Data: sh.Data,
 			Len:  sh.Len,
@@ -67,9 +58,30 @@ func getKeyHash(key interface{}) uint64 {
 		}
 		buf := *(*[]byte)(unsafe.Pointer(&bh))
 		return siphash.Hash(sipHashKey1, sipHashKey2, buf)
-
+	case int:
+		num = uint64(x)
+	case int8:
+		num = uint64(x)
+	case int16:
+		num = uint64(x)
+	case int32:
+		num = uint64(x)
+	case int64:
+		num = uint64(x)
+	case uint:
+		num = uint64(x)
+	case uint8:
+		num = uint64(x)
+	case uint16:
+		num = uint64(x)
+	case uint32:
+		num = uint64(x)
+	case uint64:
+		num = uint64(x)
+	case uintptr:
+		num = uint64(x)
 	default:
-		panic("unsupported key type")
+		panic(fmt.Errorf("unsupported key type %T", key))
 	}
 
 	bh := reflect.SliceHeader{
