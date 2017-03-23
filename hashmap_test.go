@@ -1,7 +1,9 @@
 package hashmap
 
 import (
+	"fmt"
 	"strconv"
+	"sync/atomic"
 	"testing"
 	"unsafe"
 )
@@ -242,5 +244,31 @@ func TestCompareAndSwap(t *testing.T) {
 	item := (*Animal)(tmp)
 	if item != monkey {
 		t.Error("wrong item returned.")
+	}
+}
+
+// TestAPICounter shows how to use the hashmap to count REST server API calls
+func TestAPICounter(t *testing.T) {
+	m := New()
+
+	// initialize all API counter to 0
+	for i := 0; i < 4; i++ {
+		s := fmt.Sprintf("/api%d/", i)
+		c := int64(0)
+		m.Set(s, unsafe.Pointer(&c))
+	}
+
+	for i := 0; i < 100; i++ {
+		s := fmt.Sprintf("/api%d/", i%4)
+		val, _ := m.GetStringKey(s)
+		c := (*int64)(val)
+		atomic.AddInt64(c, 1)
+	}
+
+	s := fmt.Sprintf("/api%d/", 0)
+	val, _ := m.GetStringKey(s)
+	c := (*int64)(val)
+	if *c != 25 {
+		t.Error("wrong API call count.")
 	}
 }
