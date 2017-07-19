@@ -242,7 +242,7 @@ func TestHashedKey(t *testing.T) {
 	}
 }
 
-func TestCompareAndSwap(t *testing.T) {
+func TestCompareAndSwapHashedKey(t *testing.T) {
 	m := New()
 	elephant := &Animal{"elephant"}
 	monkey := &Animal{"monkey"}
@@ -258,6 +258,31 @@ func TestCompareAndSwap(t *testing.T) {
 		t.Error("Cas should fail if expectation didn't meet")
 	}
 	tmp, ok := m.GetHashedKey(1 << 62)
+	if !ok {
+		t.Error("ok should be true for item stored within the map.")
+	}
+	item := (*Animal)(tmp)
+	if item != monkey {
+		t.Error("wrong item returned.")
+	}
+}
+
+func TestCompareAndSwap(t *testing.T) {
+	m := New()
+	elephant := &Animal{"elephant"}
+	monkey := &Animal{"monkey"}
+
+	m.Set("animal", unsafe.Pointer(elephant))
+	if m.Len() != 1 {
+		t.Error("map should contain exactly one element.")
+	}
+	if !m.Cas("animal", unsafe.Pointer(elephant), unsafe.Pointer(monkey)) {
+		t.Error("Cas should success if expectation met")
+	}
+	if m.Cas("animal", unsafe.Pointer(elephant), unsafe.Pointer(monkey)) {
+		t.Error("Cas should fail if expectation didn't meet")
+	}
+	tmp, ok := m.Get("animal")
 	if !ok {
 		t.Error("ok should be true for item stored within the map.")
 	}

@@ -212,6 +212,12 @@ func (m *HashMap) CasHashedKey(hashedKey uint64, from, to unsafe.Pointer) bool {
 	}
 }
 
+// Cas performs a compare and swap operation sets the value under the specified hash key to the map. An existing item for this key will be overwritten.
+func (m *HashMap) Cas(key interface{}, from, to unsafe.Pointer) bool {
+	hashedKey := getKeyHash(key)
+	return m.CasHashedKey(hashedKey, from, to)
+}
+
 // adds an item to the index if needed and returns the new item counter if it changed, otherwise 0
 func (mapData *hashMapData) addItemToIndex(item *ListElement) uint64 {
 	index := item.keyHash >> mapData.keyRightShifts
