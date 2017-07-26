@@ -321,8 +321,9 @@ func (m *HashMap) Iter() <-chan KeyValue {
 	go func() {
 		item := m.linkedList.First()
 		for item != nil {
-			if !item.Deleted() {
-				ch <- KeyValue{item.key, item.Value()}
+			value, ok := item.Value()
+			if ok {
+				ch <- KeyValue{item.key, value}
 			}
 			item = item.Next()
 		}

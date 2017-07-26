@@ -77,8 +77,8 @@ func (l *List) Cas(newElement *ListElement, oldValue unsafe.Pointer, searchStart
 	}
 
 	if found.CasValue(oldValue, newElement.value) {
-		if found.SetDeleted(false) {
-			atomic.AddUint64(&l.count, 1) // try to mark from deleted to not deleted
+		if found.SetDeleted(false) { // try to mark from deleted to not deleted
+			atomic.AddUint64(&l.count, 1)
 		}
 		return true
 	}
@@ -136,6 +136,5 @@ func (l *List) Delete(element *ListElement) {
 		return // element was already deleted
 	}
 
-	element.SetValue(nil)                  // clear the value for the GC
 	atomic.AddUint64(&l.count, ^uint64(0)) // decrease counter
 }

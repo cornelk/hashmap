@@ -11,7 +11,7 @@ import (
 // Get retrieves an element from the map under given hash key.
 // Using interface{} adds a performance penalty.
 // Please consider using GetUintKey or GetStringKey instead.
-func (m *HashMap) Get(key interface{}) (unsafe.Pointer, bool) {
+func (m *HashMap) Get(key interface{}) (value unsafe.Pointer, ok bool) {
 	hashedKey := getKeyHash(key)
 
 	// inline HashMap.getSliceItemForKey()
@@ -22,10 +22,17 @@ func (m *HashMap) Get(key interface{}) (unsafe.Pointer, bool) {
 
 	for entry != nil {
 		if entry.keyHash == hashedKey && entry.key == key {
-			if atomic.LoadUint64(&entry.deleted) == 1 { // inline ListElement.Deleted()
+			// inline ListElement.Value()
+			if atomic.LoadUint64(&entry.deleted) == 1 {
 				return nil, false
 			}
-			return atomic.LoadPointer(&entry.value), true // inline ListElement.Value()
+			value = atomic.LoadPointer(&entry.value)
+			// read again to make sure that the item has not been deleted between the
+			// deleted check and reading of the value
+			if atomic.LoadUint64(&entry.deleted) == 1 {
+				return nil, false
+			}
+			return value, true
 		}
 
 		if entry.keyHash > hashedKey {
@@ -38,7 +45,7 @@ func (m *HashMap) Get(key interface{}) (unsafe.Pointer, bool) {
 }
 
 // GetUintKey retrieves an element from the map under given integer key.
-func (m *HashMap) GetUintKey(key uint64) (unsafe.Pointer, bool) {
+func (m *HashMap) GetUintKey(key uint64) (value unsafe.Pointer, ok bool) {
 	bh := reflect.SliceHeader{
 		Data: uintptr(unsafe.Pointer(&key)),
 		Len:  8,
@@ -55,10 +62,17 @@ func (m *HashMap) GetUintKey(key uint64) (unsafe.Pointer, bool) {
 
 	for entry != nil {
 		if entry.keyHash == hashedKey && entry.key == key {
-			if atomic.LoadUint64(&entry.deleted) == 1 { // inline ListElement.Deleted()
+			// inline ListElement.Value()
+			if atomic.LoadUint64(&entry.deleted) == 1 {
 				return nil, false
 			}
-			return atomic.LoadPointer(&entry.value), true // inline ListElement.Value()
+			value = atomic.LoadPointer(&entry.value)
+			// read again to make sure that the item has not been deleted between the
+			// deleted check and reading of the value
+			if atomic.LoadUint64(&entry.deleted) == 1 {
+				return nil, false
+			}
+			return value, true
 		}
 
 		if entry.keyHash > hashedKey {
@@ -71,7 +85,7 @@ func (m *HashMap) GetUintKey(key uint64) (unsafe.Pointer, bool) {
 }
 
 // GetStringKey retrieves an element from the map under given string key.
-func (m *HashMap) GetStringKey(key string) (unsafe.Pointer, bool) {
+func (m *HashMap) GetStringKey(key string) (value unsafe.Pointer, ok bool) {
 	sh := (*reflect.StringHeader)(unsafe.Pointer(&key))
 	bh := reflect.SliceHeader{
 		Data: sh.Data,
@@ -89,10 +103,17 @@ func (m *HashMap) GetStringKey(key string) (unsafe.Pointer, bool) {
 
 	for entry != nil {
 		if entry.keyHash == hashedKey && entry.key == key {
-			if atomic.LoadUint64(&entry.deleted) == 1 { // inline ListElement.Deleted()
+			// inline ListElement.Value()
+			if atomic.LoadUint64(&entry.deleted) == 1 {
 				return nil, false
 			}
-			return atomic.LoadPointer(&entry.value), true // inline ListElement.Value()
+			value = atomic.LoadPointer(&entry.value)
+			// read again to make sure that the item has not been deleted between the
+			// deleted check and reading of the value
+			if atomic.LoadUint64(&entry.deleted) == 1 {
+				return nil, false
+			}
+			return value, true
 		}
 
 		if entry.keyHash > hashedKey {
@@ -105,7 +126,7 @@ func (m *HashMap) GetStringKey(key string) (unsafe.Pointer, bool) {
 }
 
 // GetHashedKey retrieves an element from the map under given hashed key.
-func (m *HashMap) GetHashedKey(hashedKey uint64) (unsafe.Pointer, bool) {
+func (m *HashMap) GetHashedKey(hashedKey uint64) (value unsafe.Pointer, ok bool) {
 	// inline HashMap.getSliceItemForKey()
 	mapData := (*hashMapData)(atomic.LoadPointer(&m.mapDataPtr))
 	index := hashedKey >> mapData.keyRightShifts
@@ -114,10 +135,17 @@ func (m *HashMap) GetHashedKey(hashedKey uint64) (unsafe.Pointer, bool) {
 
 	for entry != nil {
 		if entry.keyHash == hashedKey {
-			if atomic.LoadUint64(&entry.deleted) == 1 { // inline ListElement.Deleted()
+			// inline ListElement.Value()
+			if atomic.LoadUint64(&entry.deleted) == 1 {
 				return nil, false
 			}
-			return atomic.LoadPointer(&entry.value), true // inline ListElement.Value()
+			value = atomic.LoadPointer(&entry.value)
+			// read again to make sure that the item has not been deleted between the
+			// deleted check and reading of the value
+			if atomic.LoadUint64(&entry.deleted) == 1 {
+				return nil, false
+			}
+			return value, true
 		}
 
 		if entry.keyHash > hashedKey {

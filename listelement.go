@@ -15,8 +15,17 @@ type ListElement struct {
 }
 
 // Value returns the value of the list item.
-func (e *ListElement) Value() unsafe.Pointer {
-	return atomic.LoadPointer(&e.value)
+func (e *ListElement) Value() (value unsafe.Pointer, ok bool) {
+	if atomic.LoadUint64(&e.deleted) == 1 {
+		return nil, false
+	}
+	value = atomic.LoadPointer(&e.value)
+	// read again to make sure that the item has not been deleted between the
+	// deleted check and reading of the value
+	if atomic.LoadUint64(&e.deleted) == 1 {
+		return nil, false
+	}
+	return value, true
 }
 
 // Deleted returns whether the item was deleted.
@@ -31,10 +40,16 @@ func (e *ListElement) Next() *ListElement {
 
 // SetDeleted sets the deleted flag of the item.
 func (e *ListElement) SetDeleted(deleted bool) bool {
-	if deleted {
-		return atomic.CompareAndSwapUint64(&e.deleted, 0, 1)
+	if !deleted {
+		return atomic.CompareAndSwapUint64(&e.deleted, 1, 0)
 	}
-	return atomic.CompareAndSwapUint64(&e.deleted, 1, 0)
+
+	if !atomic.CompareAndSwapUint64(&e.deleted, 0, 1) {
+		return false
+	}
+
+	e.SetValue(nil) // clear the value for the GC
+	return true
 }
 
 // SetValue sets the value of the item.
