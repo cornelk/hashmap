@@ -4,9 +4,25 @@
 
 A Golang thread-safe HashMap optimized for fastest lock-free read access on 64 bit systems.
 
-## Benchmarks
+## Usage
 
-The benchmarks were run with Golang 1.8 on MacOS.
+Set a value for a key in the map:
+
+```
+m := &HashMap{}
+i := 123
+m.Set("amount", unsafe.Pointer(&i))
+```
+
+Read a value for a key from the map:
+```
+val, ok := m.Get("amount")
+if ok {
+    amount := *(*int)(val)
+}
+```
+
+## Benchmarks
 
 Reading from the hash map in a thread-safe way is as fast as reading from a standard Golang map in an unsafe way and 3 times faster than reading from the [Golang syncmap](https://github.com/golang/sync/tree/master/syncmap):
 
@@ -30,13 +46,15 @@ BenchmarkReadGoMapWithWritesUintMutex-8   	  100000	    172649 ns/op
 BenchmarkReadGoSyncMapWithWritesUint-8    	  300000	     37157 ns/op
 ```
 
-Pure Write performance without any reads:
+Write performance without any concurrent reads:
 
 ```
 BenchmarkWriteHashMapUint-8               	  100000	    225702 ns/op
 BenchmarkWriteGoMapMutexUint-8            	  300000	     59474 ns/op
 BenchmarkWriteGoSyncMapUint-8             	  100000	    143835 ns/op
 ```
+
+The benchmarks were run with Golang 1.8 on MacOS.
 
 ## Technical details
 
