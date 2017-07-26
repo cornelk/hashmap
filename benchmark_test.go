@@ -12,7 +12,7 @@ import (
 const benchmarkItemCount = 1 << 10 // 1024
 
 func setupHashMap(b *testing.B) *HashMap {
-	m := New()
+	m := &HashMap{}
 	for i := uint64(0); i < benchmarkItemCount; i++ {
 		j := uintptr(i)
 		m.Set(i, unsafe.Pointer(&j))
@@ -23,7 +23,7 @@ func setupHashMap(b *testing.B) *HashMap {
 }
 
 func setupHashMapString(b *testing.B) *HashMap {
-	m := New()
+	m := &HashMap{}
 	for i := 0; i < benchmarkItemCount; i++ {
 		s := strconv.Itoa(i)
 		m.Set(s, unsafe.Pointer(&s))
@@ -39,7 +39,7 @@ func writeHashMap(m *HashMap, i uint64) {
 }
 
 func setupHashMapHashedKey(b *testing.B) *HashMap {
-	m := New()
+	m := &HashMap{}
 	log := log2(uint64(benchmarkItemCount))
 	for i := uint64(0); i < benchmarkItemCount; i++ {
 		hash := i << (64 - log)
@@ -305,7 +305,7 @@ func BenchmarkReadGoMapStringMutex(b *testing.B) {
 }
 
 func BenchmarkWriteHashMapUint(b *testing.B) {
-	m := New()
+	m := &HashMap{}
 
 	for n := 0; n < b.N; n++ {
 		for i := uint64(0); i < benchmarkItemCount; i++ {
@@ -316,7 +316,7 @@ func BenchmarkWriteHashMapUint(b *testing.B) {
 }
 
 func BenchmarkWriteHashMapHashedKey(b *testing.B) {
-	m := New()
+	m := &HashMap{}
 	log := log2(uint64(benchmarkItemCount))
 
 	for n := 0; n < b.N; n++ {

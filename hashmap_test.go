@@ -13,18 +13,14 @@ type Animal struct {
 }
 
 func TestMapCreation(t *testing.T) {
-	m := New()
-	if m == nil {
-		t.Error("map is null.")
-	}
-
+	m := &HashMap{}
 	if m.Len() != 0 {
 		t.Error("new map should be empty.")
 	}
 }
 
 func TestOverwrite(t *testing.T) {
-	m := New()
+	m := &HashMap{}
 
 	elephant := "elephant"
 	monkey := "monkey"
@@ -48,7 +44,7 @@ func TestOverwrite(t *testing.T) {
 }
 
 func TestInsert(t *testing.T) {
-	m := New()
+	m := &HashMap{}
 	c := uint64(16)
 	ok := m.Insert(uint64(128), unsafe.Pointer(&c))
 	if !ok {
@@ -68,7 +64,7 @@ func TestInsert(t *testing.T) {
 }
 
 func TestSet(t *testing.T) {
-	m := NewSize(4)
+	m := New(4)
 	elephant := "elephant"
 	monkey := "monkey"
 
@@ -83,7 +79,7 @@ func TestSet(t *testing.T) {
 }
 
 func TestGet(t *testing.T) {
-	m := New()
+	m := &HashMap{}
 	elephant := "elephant"
 
 	val, ok := m.Get("animal") // Get a missing element.
@@ -113,7 +109,7 @@ func TestGet(t *testing.T) {
 }
 
 func TestResize(t *testing.T) {
-	m := NewSize(2)
+	m := New(2)
 	itemCount := 50
 
 	for i := 0; i < itemCount; i++ {
@@ -137,7 +133,7 @@ func TestResize(t *testing.T) {
 }
 
 func TestStringer(t *testing.T) {
-	m := New()
+	m := &HashMap{}
 	elephant := &Animal{"elephant"}
 	monkey := &Animal{"monkey"}
 
@@ -160,7 +156,7 @@ func TestStringer(t *testing.T) {
 }
 
 func TestDelete(t *testing.T) {
-	m := New()
+	m := &HashMap{}
 	m.Del(0)
 
 	elephant := &Animal{"elephant"}
@@ -192,7 +188,7 @@ func TestDelete(t *testing.T) {
 }
 
 func TestIterator(t *testing.T) {
-	m := New()
+	m := &HashMap{}
 	itemCount := 16
 
 	for i := itemCount; i > 0; i-- {
@@ -214,7 +210,7 @@ func TestIterator(t *testing.T) {
 }
 
 func TestHashedKey(t *testing.T) {
-	m := New()
+	m := &HashMap{}
 	itemCount := 16
 	log := log2(uint64(itemCount))
 
@@ -243,7 +239,7 @@ func TestHashedKey(t *testing.T) {
 }
 
 func TestCompareAndSwapHashedKey(t *testing.T) {
-	m := New()
+	m := &HashMap{}
 	elephant := &Animal{"elephant"}
 	monkey := &Animal{"monkey"}
 
@@ -268,7 +264,7 @@ func TestCompareAndSwapHashedKey(t *testing.T) {
 }
 
 func TestCompareAndSwap(t *testing.T) {
-	m := New()
+	m := &HashMap{}
 	elephant := &Animal{"elephant"}
 	monkey := &Animal{"monkey"}
 
@@ -294,7 +290,7 @@ func TestCompareAndSwap(t *testing.T) {
 
 // TestAPICounter shows how to use the hashmap to count REST server API calls
 func TestAPICounter(t *testing.T) {
-	m := New()
+	m := &HashMap{}
 
 	for i := 0; i < 100; i++ {
 		s := fmt.Sprintf("/api%d/", i%4)
@@ -320,5 +316,21 @@ func TestAPICounter(t *testing.T) {
 	c := (*int64)(val)
 	if *c != 25 {
 		t.Error("wrong API call count.")
+	}
+}
+
+func TestExample(t *testing.T) {
+	m := &HashMap{}
+	i := 123
+	m.Set("amount", unsafe.Pointer(&i))
+
+	val, ok := m.Get("amount")
+	if !ok {
+		t.Fail()
+	}
+
+	j := *(*int)(val)
+	if i != j {
+		t.Fail()
 	}
 }

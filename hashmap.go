@@ -23,7 +23,7 @@ type (
 	// HashMap implements a read optimized hash map.
 	HashMap struct {
 		mapDataPtr unsafe.Pointer // pointer to a map instance that gets replaced if the map resizes
-		linkedList *List          // key sorted linked list of elements
+		linkedList unsafe.Pointer // key sorted linked list of elements
 		sync.Mutex                // mutex that is only used for resize operations
 	}
 
@@ -34,27 +34,30 @@ type (
 	}
 )
 
-// New returns a new HashMap.
-func New() *HashMap {
-	return NewSize(8)
-}
-
-// NewSize returns a new HashMap instance with a specific initialization size.
-func NewSize(size uint64) *HashMap {
-	hashmap := &HashMap{
-		linkedList: NewList(),
-	}
-	hashmap.Grow(size)
-	return hashmap
+// New returns a new HashMap instance with a specific initialization size.
+func New(size uint64) *HashMap {
+	list := NewList()
+	m := &HashMap{}
+	atomic.StorePointer(&m.linkedList, unsafe.Pointer(list))
+	m.Grow(size)
+	return m
 }
 
 // Len returns the number of elements within the map.
 func (m *HashMap) Len() uint64 {
-	return m.linkedList.Len()
+	list := m.list()
+	if list == nil {
+		return 0
+	}
+	return list.Len()
 }
 
 func (m *HashMap) mapData() *hashMapData {
 	return (*hashMapData)(atomic.LoadPointer(&m.mapDataPtr))
+}
+
+func (m *HashMap) list() *List {
+	return (*List)(atomic.LoadPointer(&m.linkedList))
 }
 
 // Fillrate returns the fill rate of the map as an percentage integer.
@@ -67,18 +70,26 @@ func (m *HashMap) Fillrate() uint64 {
 
 func (m *HashMap) getSliceItemForKey(hashedKey uint64) (mapData *hashMapData, item *ListElement) {
 	mapData = m.mapData()
+	if mapData == nil {
+		return nil, nil
+	}
 	index := hashedKey >> mapData.keyRightShifts
 	sliceDataIndexPointer := (*unsafe.Pointer)(unsafe.Pointer(uintptr(mapData.data) + uintptr(index*intSizeBytes)))
 	item = (*ListElement)(atomic.LoadPointer(sliceDataIndexPointer))
-	return
+	return mapData, item
 }
 
 // Del deletes the hashed key from the map.
 func (m *HashMap) Del(key interface{}) {
+	list := m.list()
+	if list == nil {
+		return
+	}
+
 	hashedKey := getKeyHash(key)
 	for _, entry := m.getSliceItemForKey(hashedKey); entry != nil; entry = entry.Next() {
 		if entry.keyHash == hashedKey && entry.key == key {
-			m.linkedList.Delete(entry)
+			list.Delete(entry)
 			return
 		}
 
@@ -90,9 +101,14 @@ func (m *HashMap) Del(key interface{}) {
 
 // DelHashedKey deletes the hashed key from the map.
 func (m *HashMap) DelHashedKey(hashedKey uint64) {
+	list := m.list()
+	if list == nil {
+		return
+	}
+
 	for _, entry := m.getSliceItemForKey(hashedKey); entry != nil; entry = entry.Next() {
 		if entry.keyHash == hashedKey {
-			m.linkedList.Delete(entry)
+			list.Delete(entry)
 			return
 		}
 
@@ -148,12 +164,30 @@ func (m *HashMap) SetHashedKey(hashedKey uint64, value unsafe.Pointer) {
 func (m *HashMap) insertListElement(newEntry *ListElement, update bool) bool {
 	for {
 		mapData, sliceItem := m.getSliceItemForKey(newEntry.keyHash)
+		if mapData == nil {
+			m.Lock()
+			mapData = m.mapData()
+			if mapData == nil { // double check that no other resize happened
+				m.grow(8)
+			}
+			m.Unlock()
+			continue // read mapdata and slice item again
+		}
+
+		list := m.list()
+		if list == nil {
+			list = NewList()
+			if !atomic.CompareAndSwapPointer(&m.linkedList, nil, unsafe.Pointer(list)) {
+				list = m.list()
+			}
+		}
+
 		if update {
-			if !m.linkedList.AddOrUpdate(newEntry, sliceItem) {
+			if !list.AddOrUpdate(newEntry, sliceItem) {
 				continue // a concurrent add did interfere, try again
 			}
 		} else {
-			existed, inserted := m.linkedList.Add(newEntry, sliceItem)
+			existed, inserted := list.Add(newEntry, sliceItem)
 			if existed {
 				return false
 			}
@@ -190,7 +224,14 @@ func (m *HashMap) CasHashedKey(hashedKey uint64, from, to unsafe.Pointer) bool {
 
 	for {
 		mapData, sliceItem := m.getSliceItemForKey(hashedKey)
-		if !m.linkedList.Cas(newEntry, from, sliceItem) {
+		if mapData == nil {
+			return false
+		}
+		list := m.list()
+		if list == nil {
+			return false
+		}
+		if !list.Cas(newEntry, from, sliceItem) {
 			return false
 		}
 
@@ -275,7 +316,11 @@ func (m *HashMap) grow(newSize uint64) {
 }
 
 func (m *HashMap) fillIndexItems(mapData *hashMapData) {
-	first := m.linkedList.First()
+	list := m.list()
+	if list == nil {
+		return
+	}
+	first := list.First()
 	item := first
 	lastIndex := uint64(0)
 
@@ -293,10 +338,15 @@ func (m *HashMap) fillIndexItems(mapData *hashMapData) {
 
 // String returns the map as a string, only hashed keys are printed.
 func (m *HashMap) String() string {
+	list := m.list()
+	if list == nil {
+		return "[]"
+	}
+
 	buffer := bytes.NewBufferString("")
 	buffer.WriteRune('[')
 
-	first := m.linkedList.First()
+	first := list.First()
 	item := first
 
 	for item != nil {
@@ -319,7 +369,12 @@ func (m *HashMap) Iter() <-chan KeyValue {
 	ch := make(chan KeyValue) // do not use a size here since items can get added during iteration
 
 	go func() {
-		item := m.linkedList.First()
+		list := m.list()
+		if list == nil {
+			close(ch)
+			return
+		}
+		item := list.First()
 		for item != nil {
 			value, ok := item.Value()
 			if ok {

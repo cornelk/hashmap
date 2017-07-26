@@ -16,6 +16,9 @@ func (m *HashMap) Get(key interface{}) (value unsafe.Pointer, ok bool) {
 
 	// inline HashMap.getSliceItemForKey()
 	mapData := (*hashMapData)(atomic.LoadPointer(&m.mapDataPtr))
+	if mapData == nil {
+		return nil, false
+	}
 	index := hashedKey >> mapData.keyRightShifts
 	sliceDataIndexPointer := (*unsafe.Pointer)(unsafe.Pointer(uintptr(mapData.data) + uintptr(index*intSizeBytes)))
 	entry := (*ListElement)(atomic.LoadPointer(sliceDataIndexPointer))
@@ -46,6 +49,11 @@ func (m *HashMap) Get(key interface{}) (value unsafe.Pointer, ok bool) {
 
 // GetUintKey retrieves an element from the map under given integer key.
 func (m *HashMap) GetUintKey(key uint64) (value unsafe.Pointer, ok bool) {
+	mapData := (*hashMapData)(atomic.LoadPointer(&m.mapDataPtr))
+	if mapData == nil {
+		return nil, false
+	}
+
 	bh := reflect.SliceHeader{
 		Data: uintptr(unsafe.Pointer(&key)),
 		Len:  8,
@@ -55,7 +63,6 @@ func (m *HashMap) GetUintKey(key uint64) (value unsafe.Pointer, ok bool) {
 	hashedKey := siphash.Hash(sipHashKey1, sipHashKey2, buf)
 
 	// inline HashMap.getSliceItemForKey()
-	mapData := (*hashMapData)(atomic.LoadPointer(&m.mapDataPtr))
 	index := hashedKey >> mapData.keyRightShifts
 	sliceDataIndexPointer := (*unsafe.Pointer)(unsafe.Pointer(uintptr(mapData.data) + uintptr(index*intSizeBytes)))
 	entry := (*ListElement)(atomic.LoadPointer(sliceDataIndexPointer))
@@ -86,6 +93,11 @@ func (m *HashMap) GetUintKey(key uint64) (value unsafe.Pointer, ok bool) {
 
 // GetStringKey retrieves an element from the map under given string key.
 func (m *HashMap) GetStringKey(key string) (value unsafe.Pointer, ok bool) {
+	mapData := (*hashMapData)(atomic.LoadPointer(&m.mapDataPtr))
+	if mapData == nil {
+		return nil, false
+	}
+
 	sh := (*reflect.StringHeader)(unsafe.Pointer(&key))
 	bh := reflect.SliceHeader{
 		Data: sh.Data,
@@ -96,7 +108,6 @@ func (m *HashMap) GetStringKey(key string) (value unsafe.Pointer, ok bool) {
 	hashedKey := siphash.Hash(sipHashKey1, sipHashKey2, buf)
 
 	// inline HashMap.getSliceItemForKey()
-	mapData := (*hashMapData)(atomic.LoadPointer(&m.mapDataPtr))
 	index := hashedKey >> mapData.keyRightShifts
 	sliceDataIndexPointer := (*unsafe.Pointer)(unsafe.Pointer(uintptr(mapData.data) + uintptr(index*intSizeBytes)))
 	entry := (*ListElement)(atomic.LoadPointer(sliceDataIndexPointer))
@@ -129,6 +140,9 @@ func (m *HashMap) GetStringKey(key string) (value unsafe.Pointer, ok bool) {
 func (m *HashMap) GetHashedKey(hashedKey uint64) (value unsafe.Pointer, ok bool) {
 	// inline HashMap.getSliceItemForKey()
 	mapData := (*hashMapData)(atomic.LoadPointer(&m.mapDataPtr))
+	if mapData == nil {
+		return nil, false
+	}
 	index := hashedKey >> mapData.keyRightShifts
 	sliceDataIndexPointer := (*unsafe.Pointer)(unsafe.Pointer(uintptr(mapData.data) + uintptr(index*intSizeBytes)))
 	entry := (*ListElement)(atomic.LoadPointer(sliceDataIndexPointer))
