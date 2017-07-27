@@ -9,6 +9,9 @@ import (
 	"unsafe"
 )
 
+// DefaultSize is the default size for a zero allocated map
+const DefaultSize = 8
+
 // MaxFillRate is the maximum fill rate for the slice before a resize  will happen.
 const MaxFillRate = 50
 
@@ -36,10 +39,8 @@ type (
 
 // New returns a new HashMap instance with a specific initialization size.
 func New(size uint64) *HashMap {
-	list := NewList()
 	m := &HashMap{}
-	atomic.StorePointer(&m.linkedList, unsafe.Pointer(list))
-	m.Grow(size)
+	m.allocate(size)
 	return m
 }
 
@@ -58,6 +59,20 @@ func (m *HashMap) mapData() *hashMapData {
 
 func (m *HashMap) list() *List {
 	return (*List)(atomic.LoadPointer(&m.linkedList))
+}
+
+func (m *HashMap) allocate(newSize uint64) {
+	m.Lock()
+	defer m.Unlock()
+
+	mapData := m.mapData()
+	if mapData != nil { // check that no other allocation happened
+		return
+	}
+
+	list := NewList()
+	atomic.StorePointer(&m.linkedList, unsafe.Pointer(list))
+	m.grow(newSize)
 }
 
 // Fillrate returns the fill rate of the map as an percentage integer.
@@ -165,22 +180,10 @@ func (m *HashMap) insertListElement(newEntry *ListElement, update bool) bool {
 	for {
 		mapData, sliceItem := m.getSliceItemForKey(newEntry.keyHash)
 		if mapData == nil {
-			m.Lock()
-			mapData = m.mapData()
-			if mapData == nil { // double check that no other resize happened
-				m.grow(8)
-			}
-			m.Unlock()
+			m.allocate(DefaultSize)
 			continue // read mapdata and slice item again
 		}
-
 		list := m.list()
-		if list == nil {
-			list = NewList()
-			if !atomic.CompareAndSwapPointer(&m.linkedList, nil, unsafe.Pointer(list)) {
-				list = m.list()
-			}
-		}
 
 		if update {
 			if !list.AddOrUpdate(newEntry, sliceItem) {
