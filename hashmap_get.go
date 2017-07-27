@@ -170,3 +170,55 @@ func (m *HashMap) GetHashedKey(hashedKey uint64) (value unsafe.Pointer, ok bool)
 	}
 	return nil, false
 }
+
+// GetOrInsert returns the existing value for the key if present.
+// Otherwise, it stores and returns the given value.
+// The loaded result is true if the value was loaded, false if stored.
+func (m *HashMap) GetOrInsert(key interface{}, value unsafe.Pointer) (actual unsafe.Pointer, loaded bool) {
+	hashedKey := getKeyHash(key)
+	var newEntry *ListElement
+
+	for {
+		// inline HashMap.getSliceItemForKey()
+		mapData := (*hashMapData)(atomic.LoadPointer(&m.mapDataPtr))
+		if mapData == nil {
+			m.allocate(DefaultSize)
+			mapData = (*hashMapData)(atomic.LoadPointer(&m.mapDataPtr))
+		}
+		index := hashedKey >> mapData.keyRightShifts
+		sliceDataIndexPointer := (*unsafe.Pointer)(unsafe.Pointer(uintptr(mapData.data) + uintptr(index*intSizeBytes)))
+		sliceItem := (*ListElement)(atomic.LoadPointer(sliceDataIndexPointer))
+
+		entry := sliceItem
+		for entry != nil {
+			if entry.keyHash == hashedKey && entry.key == key {
+				actual, loaded := entry.GetOrSetValue(value)
+				if loaded {
+					return actual, true
+				}
+
+				list := m.list()
+				atomic.AddUint64(&list.count, 1)
+				return value, false
+			}
+
+			if entry.keyHash > hashedKey {
+				break
+			}
+
+			entry = (*ListElement)(atomic.LoadPointer(&entry.nextElement)) // inline ListElement.Next()
+		}
+
+		if newEntry == nil { // allocate only once
+			newEntry = &ListElement{
+				key:     key,
+				keyHash: hashedKey,
+				value:   value,
+			}
+		}
+
+		if m.insertListElement(newEntry, false) {
+			return value, false
+		}
+	}
+}

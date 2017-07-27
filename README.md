@@ -22,6 +22,16 @@ if ok {
 }
 ```
 
+Use the map to count URL requests:
+```
+var i int64
+actual, _ := m.GetOrInsert("api/123", unsafe.Pointer(&i))
+counter := (*int64)(actual)
+atomic.AddInt64(counter, 1) // increase counter
+...
+count := atomic.LoadInt64(counter) // read counter
+```
+
 ## Benchmarks
 
 Reading from the hash map in a thread-safe way is as fast as reading from a standard Golang map in an unsafe way and 3 times faster than reading from the [Golang syncmap](https://github.com/golang/sync/tree/master/syncmap):

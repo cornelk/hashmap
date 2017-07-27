@@ -334,3 +334,30 @@ func TestExample(t *testing.T) {
 		t.Fail()
 	}
 }
+
+func TestGetOrInsert(t *testing.T) {
+	m := &HashMap{}
+
+	var i, j int64
+	actual, loaded := m.GetOrInsert("api1", unsafe.Pointer(&i))
+	if loaded {
+		t.Error("item should have been inserted.")
+	}
+
+	counter := (*int64)(actual)
+	if *counter != 0 {
+		t.Error("item should be 0.")
+	}
+
+	atomic.AddInt64(counter, 1) // increase counter
+
+	actual, loaded = m.GetOrInsert("api1", unsafe.Pointer(&j))
+	if !loaded {
+		t.Error("item should have been loaded.")
+	}
+
+	counter = (*int64)(actual)
+	if *counter != 1 {
+		t.Error("item should be 1.")
+	}
+}

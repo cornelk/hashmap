@@ -61,3 +61,25 @@ func (e *ListElement) SetValue(value unsafe.Pointer) {
 func (e *ListElement) CasValue(from, to unsafe.Pointer) bool {
 	return atomic.CompareAndSwapPointer(&e.value, from, to)
 }
+
+// GetOrSetValue returns the value of the item.
+// Otherwise, it stores and returns the given value.
+// The loaded result is true if the value was loaded, false if stored.
+func (e *ListElement) GetOrSetValue(value unsafe.Pointer) (actual unsafe.Pointer, loaded bool) {
+	for {
+		if atomic.LoadUint64(&e.deleted) == 0 { // inline ListElement.Deleted()
+			actual = atomic.LoadPointer(&e.value)
+			// read again to make sure that the item has not been deleted between the
+			// deleted check and reading of the value
+			if atomic.LoadUint64(&e.deleted) == 0 {
+				return actual, true
+			}
+		}
+
+		if e.CasValue(nil, value) {
+			if e.SetDeleted(false) {
+				return value, false
+			}
+		}
+	}
+}
