@@ -7,8 +7,8 @@ import (
 
 // List is a sorted list.
 type List struct {
-	root  *ListElement
 	count uint64
+	root  *ListElement
 }
 
 // NewList returns an initialized list.
