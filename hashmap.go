@@ -18,9 +18,9 @@ const MaxFillRate = 50
 type (
 	hashMapData struct {
 		keyRightShifts uint64         // 64 - log2 of array size, to be used as index in the data array
+		count          uint64         // count of filled elements in the slice
 		data           unsafe.Pointer // pointer to slice data array
 		slice          []*ListElement // storage for the slice for the garbage collector to not clean it up
-		count          uint64         // count of filled elements in the slice
 	}
 
 	// HashMap implements a read optimized hash map.
