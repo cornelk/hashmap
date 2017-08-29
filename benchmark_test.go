@@ -13,7 +13,7 @@ const benchmarkItemCount = 1 << 10 // 1024
 
 func setupHashMap(b *testing.B) *HashMap {
 	m := &HashMap{}
-	for i := uint64(0); i < benchmarkItemCount; i++ {
+	for i := uintptr(0); i < benchmarkItemCount; i++ {
 		j := uintptr(i)
 		m.Set(i, unsafe.Pointer(&j))
 	}
@@ -33,16 +33,16 @@ func setupHashMapString(b *testing.B) *HashMap {
 	return m
 }
 
-func writeHashMap(m *HashMap, i uint64) {
+func writeHashMap(m *HashMap, i uintptr) {
 	j := uintptr(i)
 	m.Set(i, unsafe.Pointer(&j))
 }
 
 func setupHashMapHashedKey(b *testing.B) *HashMap {
 	m := &HashMap{}
-	log := log2(uint64(benchmarkItemCount))
-	for i := uint64(0); i < benchmarkItemCount; i++ {
-		hash := i << (64 - log)
+	log := log2(uintptr(benchmarkItemCount))
+	for i := uintptr(0); i < benchmarkItemCount; i++ {
+		hash := i << (strconv.IntSize - log)
 		j := uintptr(i)
 		m.SetHashedKey(hash, unsafe.Pointer(&j))
 	}
@@ -51,9 +51,9 @@ func setupHashMapHashedKey(b *testing.B) *HashMap {
 	return m
 }
 
-func setupGoMap(b *testing.B) map[uint64]uint64 {
-	m := make(map[uint64]uint64)
-	for i := uint64(0); i < benchmarkItemCount; i++ {
+func setupGoMap(b *testing.B) map[uintptr]uintptr {
+	m := make(map[uintptr]uintptr)
+	for i := uintptr(0); i < benchmarkItemCount; i++ {
 		m[i] = i
 	}
 
@@ -61,7 +61,7 @@ func setupGoMap(b *testing.B) map[uint64]uint64 {
 	return m
 }
 
-func writeGoMap(m map[uint64]uint64, i uint64, mtx *sync.RWMutex) {
+func writeGoMap(m map[uintptr]uintptr, i uintptr, mtx *sync.RWMutex) {
 	mtx.Lock()
 	m[i] = i
 	mtx.Unlock()
@@ -69,7 +69,7 @@ func writeGoMap(m map[uint64]uint64, i uint64, mtx *sync.RWMutex) {
 
 func setupGoSyncMap(b *testing.B) *syncmap.Map {
 	m := &syncmap.Map{}
-	for i := uint64(0); i < benchmarkItemCount; i++ {
+	for i := uintptr(0); i < benchmarkItemCount; i++ {
 		m.Store(i, i)
 	}
 
@@ -77,7 +77,7 @@ func setupGoSyncMap(b *testing.B) *syncmap.Map {
 	return m
 }
 
-func writeGoSyncMap(m *syncmap.Map, i uint64) {
+func writeGoSyncMap(m *syncmap.Map, i uintptr) {
 	m.Store(i, i)
 }
 
@@ -96,9 +96,9 @@ func BenchmarkReadHashMapUint(b *testing.B) {
 
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			for i := uint64(0); i < benchmarkItemCount; i++ {
+			for i := uintptr(0); i < benchmarkItemCount; i++ {
 				j, _ := m.GetUintKey(i)
-				if *(*uint64)(j) != i {
+				if *(*uintptr)(j) != i {
 					b.Fail()
 				}
 			}
@@ -111,7 +111,7 @@ func BenchmarkReadHashMapWithWritesUint(b *testing.B) {
 
 	go func(bn int) {
 		for n := 0; n < bn; n++ {
-			for i := uint64(0); i < benchmarkItemCount; i++ {
+			for i := uintptr(0); i < benchmarkItemCount; i++ {
 				writeHashMap(m, i)
 			}
 		}
@@ -119,9 +119,9 @@ func BenchmarkReadHashMapWithWritesUint(b *testing.B) {
 
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			for i := uint64(0); i < benchmarkItemCount; i++ {
+			for i := uintptr(0); i < benchmarkItemCount; i++ {
 				j, _ := m.GetUintKey(i)
-				if *(*uint64)(j) != i {
+				if *(*uintptr)(j) != i {
 					b.Fail()
 				}
 			}
@@ -150,9 +150,9 @@ func BenchmarkReadHashMapInterface(b *testing.B) {
 
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			for i := uint64(0); i < benchmarkItemCount; i++ {
+			for i := uintptr(0); i < benchmarkItemCount; i++ {
 				j, _ := m.Get(i)
-				if *(*uint64)(j) != i {
+				if *(*uintptr)(j) != i {
 					b.Fail()
 				}
 			}
@@ -162,14 +162,14 @@ func BenchmarkReadHashMapInterface(b *testing.B) {
 
 func BenchmarkReadHashMapHashedKey(b *testing.B) {
 	m := setupHashMapHashedKey(b)
-	log := log2(uint64(benchmarkItemCount))
+	log := log2(uintptr(benchmarkItemCount))
 
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			for i := uint64(0); i < benchmarkItemCount; i++ {
-				hash := i << (64 - log)
+			for i := uintptr(0); i < benchmarkItemCount; i++ {
+				hash := i << (strconv.IntSize - log)
 				j, _ := m.GetHashedKey(hash)
-				if *(*uint64)(j) != i {
+				if *(*uintptr)(j) != i {
 					b.Fail()
 				}
 			}
@@ -181,7 +181,7 @@ func BenchmarkReadGoMapUintUnsafe(b *testing.B) {
 	m := setupGoMap(b)
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			for i := uint64(0); i < benchmarkItemCount; i++ {
+			for i := uintptr(0); i < benchmarkItemCount; i++ {
 				j, _ := m[i]
 				if j != i {
 					b.Fail()
@@ -196,7 +196,7 @@ func BenchmarkReadGoMapUintMutex(b *testing.B) {
 	l := &sync.RWMutex{}
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			for i := uint64(0); i < benchmarkItemCount; i++ {
+			for i := uintptr(0); i < benchmarkItemCount; i++ {
 				l.RLock()
 				j, _ := m[i]
 				l.RUnlock()
@@ -214,7 +214,7 @@ func BenchmarkReadGoMapWithWritesUintMutex(b *testing.B) {
 
 	go func(bn int) {
 		for n := 0; n < bn; n++ {
-			for i := uint64(0); i < benchmarkItemCount; i++ {
+			for i := uintptr(0); i < benchmarkItemCount; i++ {
 				writeGoMap(m, i, l)
 			}
 		}
@@ -222,7 +222,7 @@ func BenchmarkReadGoMapWithWritesUintMutex(b *testing.B) {
 
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			for i := uint64(0); i < benchmarkItemCount; i++ {
+			for i := uintptr(0); i < benchmarkItemCount; i++ {
 				l.RLock()
 				j, _ := m[i]
 				l.RUnlock()
@@ -238,7 +238,7 @@ func BenchmarkReadGoSyncMapUint(b *testing.B) {
 	m := setupGoSyncMap(b)
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			for i := uint64(0); i < benchmarkItemCount; i++ {
+			for i := uintptr(0); i < benchmarkItemCount; i++ {
 				j, _ := m.Load(i)
 				if j != i {
 					b.Fail()
@@ -253,7 +253,7 @@ func BenchmarkReadGoSyncMapWithWritesUint(b *testing.B) {
 
 	go func(bn int) {
 		for n := 0; n < bn; n++ {
-			for i := uint64(0); i < benchmarkItemCount; i++ {
+			for i := uintptr(0); i < benchmarkItemCount; i++ {
 				writeGoSyncMap(m, i)
 			}
 		}
@@ -261,7 +261,7 @@ func BenchmarkReadGoSyncMapWithWritesUint(b *testing.B) {
 
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			for i := uint64(0); i < benchmarkItemCount; i++ {
+			for i := uintptr(0); i < benchmarkItemCount; i++ {
 				j, _ := m.Load(i)
 				if j != i {
 					b.Fail()
@@ -308,7 +308,7 @@ func BenchmarkWriteHashMapUint(b *testing.B) {
 	m := &HashMap{}
 
 	for n := 0; n < b.N; n++ {
-		for i := uint64(0); i < benchmarkItemCount; i++ {
+		for i := uintptr(0); i < benchmarkItemCount; i++ {
 			j := uintptr(i)
 			m.Set(i, unsafe.Pointer(&j))
 		}
@@ -317,11 +317,11 @@ func BenchmarkWriteHashMapUint(b *testing.B) {
 
 func BenchmarkWriteHashMapHashedKey(b *testing.B) {
 	m := &HashMap{}
-	log := log2(uint64(benchmarkItemCount))
+	log := log2(uintptr(benchmarkItemCount))
 
 	for n := 0; n < b.N; n++ {
-		for i := uint64(0); i < benchmarkItemCount; i++ {
-			hash := i << (64 - log)
+		for i := uintptr(0); i < benchmarkItemCount; i++ {
+			hash := i << (strconv.IntSize - log)
 			j := uintptr(i)
 			m.SetHashedKey(hash, unsafe.Pointer(&j))
 		}
@@ -329,11 +329,11 @@ func BenchmarkWriteHashMapHashedKey(b *testing.B) {
 }
 
 func BenchmarkWriteGoMapMutexUint(b *testing.B) {
-	m := make(map[uint64]uint64)
+	m := make(map[uintptr]uintptr)
 	l := &sync.RWMutex{}
 
 	for n := 0; n < b.N; n++ {
-		for i := uint64(0); i < benchmarkItemCount; i++ {
+		for i := uintptr(0); i < benchmarkItemCount; i++ {
 			l.Lock()
 			m[i] = i
 			l.Unlock()
@@ -345,7 +345,7 @@ func BenchmarkWriteGoSyncMapUint(b *testing.B) {
 	m := &syncmap.Map{}
 
 	for n := 0; n < b.N; n++ {
-		for i := uint64(0); i < benchmarkItemCount; i++ {
+		for i := uintptr(0); i < benchmarkItemCount; i++ {
 			m.Store(i, i)
 		}
 	}

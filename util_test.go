@@ -5,7 +5,7 @@ import (
 )
 
 func TestLog2(t *testing.T) {
-	var fixtures = map[uint64]uint64{
+	var fixtures = map[uintptr]uintptr{
 		0: 0,
 		1: 0,
 		2: 1,

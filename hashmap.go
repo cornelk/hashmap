@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"reflect"
+	"strconv"
 	"sync"
 	"sync/atomic"
 	"unsafe"
@@ -17,10 +18,10 @@ const MaxFillRate = 50
 
 type (
 	hashMapData struct {
-		keyRightShifts uint64         // 64 - log2 of array size, to be used as index in the data array
+		keyRightShifts uintptr        // Pointer size - log2 of array size, to be used as index in the data array
+		count          uintptr        // count of filled elements in the slice
 		data           unsafe.Pointer // pointer to slice data array
 		slice          []*ListElement // storage for the slice for the garbage collector to not clean it up
-		count          uint64         // count of filled elements in the slice
 	}
 
 	// HashMap implements a read optimized hash map.
@@ -38,14 +39,14 @@ type (
 )
 
 // New returns a new HashMap instance with a specific initialization size.
-func New(size uint64) *HashMap {
+func New(size uintptr) *HashMap {
 	m := &HashMap{}
 	m.allocate(size)
 	return m
 }
 
 // Len returns the number of elements within the map.
-func (m *HashMap) Len() uint64 {
+func (m *HashMap) Len() int {
 	list := m.list()
 	if list == nil {
 		return 0
@@ -61,7 +62,7 @@ func (m *HashMap) list() *List {
 	return (*List)(atomic.LoadPointer(&m.linkedList))
 }
 
-func (m *HashMap) allocate(newSize uint64) {
+func (m *HashMap) allocate(newSize uintptr) {
 	m.Lock()
 	defer m.Unlock()
 
@@ -76,14 +77,14 @@ func (m *HashMap) allocate(newSize uint64) {
 }
 
 // Fillrate returns the fill rate of the map as an percentage integer.
-func (m *HashMap) Fillrate() uint64 {
+func (m *HashMap) Fillrate() uintptr {
 	mapData := m.mapData()
-	count := atomic.LoadUint64(&mapData.count)
-	sliceLen := uint64(len(mapData.slice))
+	count := atomic.LoadUintptr(&mapData.count)
+	sliceLen := uintptr(len(mapData.slice))
 	return (count * 100) / sliceLen
 }
 
-func (m *HashMap) getSliceItemForKey(hashedKey uint64) (mapData *hashMapData, item *ListElement) {
+func (m *HashMap) getSliceItemForKey(hashedKey uintptr) (mapData *hashMapData, item *ListElement) {
 	mapData = m.mapData()
 	if mapData == nil {
 		return nil, nil
@@ -115,7 +116,7 @@ func (m *HashMap) Del(key interface{}) {
 }
 
 // DelHashedKey deletes the hashed key from the map.
-func (m *HashMap) DelHashedKey(hashedKey uint64) {
+func (m *HashMap) DelHashedKey(hashedKey uintptr) {
 	list := m.list()
 	if list == nil {
 		return
@@ -166,7 +167,7 @@ func (m *HashMap) Set(key interface{}, value unsafe.Pointer) {
 // You can use this function if your keys are already hashes and you want to avoid another hashing of the key.
 // Do not use non hashes as keys for this function, the performance would decrease!
 // If a resizing operation is happening concurrently while calling Set, the item might show up in the map only after the resize operation is finished.
-func (m *HashMap) SetHashedKey(hashedKey uint64, value unsafe.Pointer) {
+func (m *HashMap) SetHashedKey(hashedKey uintptr, value unsafe.Pointer) {
 	newEntry := &ListElement{
 		key:     hashedKey,
 		keyHash: hashedKey,
@@ -201,7 +202,7 @@ func (m *HashMap) insertListElement(newEntry *ListElement, update bool) bool {
 
 		newSliceCount := mapData.addItemToIndex(newEntry)
 		if newSliceCount != 0 {
-			sliceLen := uint64(len(mapData.slice))
+			sliceLen := uintptr(len(mapData.slice))
 			fillRate := (newSliceCount * 100) / sliceLen
 
 			if fillRate > MaxFillRate { // check if the slice needs to be resized
@@ -218,7 +219,7 @@ func (m *HashMap) insertListElement(newEntry *ListElement, update bool) bool {
 }
 
 // CasHashedKey performs a compare and swap operation sets the value under the specified hash key to the map. An existing item for this key will be overwritten.
-func (m *HashMap) CasHashedKey(hashedKey uint64, from, to unsafe.Pointer) bool {
+func (m *HashMap) CasHashedKey(hashedKey uintptr, from, to unsafe.Pointer) bool {
 	newEntry := &ListElement{
 		key:     hashedKey,
 		keyHash: hashedKey,
@@ -240,7 +241,7 @@ func (m *HashMap) CasHashedKey(hashedKey uint64, from, to unsafe.Pointer) bool {
 
 		newSliceCount := mapData.addItemToIndex(newEntry)
 		if newSliceCount != 0 {
-			sliceLen := uint64(len(mapData.slice))
+			sliceLen := uintptr(len(mapData.slice))
 			fillRate := (newSliceCount * 100) / sliceLen
 
 			if fillRate > MaxFillRate { // check if the slice needs to be resized
@@ -263,7 +264,7 @@ func (m *HashMap) Cas(key interface{}, from, to unsafe.Pointer) bool {
 }
 
 // adds an item to the index if needed and returns the new item counter if it changed, otherwise 0
-func (mapData *hashMapData) addItemToIndex(item *ListElement) uint64 {
+func (mapData *hashMapData) addItemToIndex(item *ListElement) uintptr {
 	index := item.keyHash >> mapData.keyRightShifts
 	sliceDataIndexPointer := (*unsafe.Pointer)(unsafe.Pointer(uintptr(mapData.data) + uintptr(index*intSizeBytes)))
 
@@ -271,7 +272,7 @@ func (mapData *hashMapData) addItemToIndex(item *ListElement) uint64 {
 		sliceItem := (*ListElement)(atomic.LoadPointer(sliceDataIndexPointer)) // get the current item in the index
 		if sliceItem == nil {                                                  // no item yet at this index
 			if atomic.CompareAndSwapPointer(sliceDataIndexPointer, nil, unsafe.Pointer(item)) {
-				return atomic.AddUint64(&mapData.count, 1)
+				return atomic.AddUintptr(&mapData.count, 1)
 			}
 			continue // a new item was inserted concurrently, retry
 		}
@@ -288,16 +289,16 @@ func (mapData *hashMapData) addItemToIndex(item *ListElement) uint64 {
 
 // Grow resizes the hashmap to a new size, gets rounded up to next power of 2.
 // To double the size of the hashmap use newSize 0.
-func (m *HashMap) Grow(newSize uint64) {
+func (m *HashMap) Grow(newSize uintptr) {
 	m.Lock()
 	m.grow(newSize)
 	m.Unlock()
 }
 
-func (m *HashMap) grow(newSize uint64) {
+func (m *HashMap) grow(newSize uintptr) {
 	mapData := m.mapData()
 	if newSize == 0 {
-		newSize = uint64(len(mapData.slice)) << 1
+		newSize = uintptr(len(mapData.slice)) << 1
 	} else {
 		newSize = roundUpPower2(newSize)
 	}
@@ -306,7 +307,7 @@ func (m *HashMap) grow(newSize uint64) {
 	header := (*reflect.SliceHeader)(unsafe.Pointer(&newSlice))
 
 	newMapData := &hashMapData{
-		keyRightShifts: 64 - log2(newSize),
+		keyRightShifts: strconv.IntSize - log2(newSize),
 		data:           unsafe.Pointer(header.Data), // use address of slice data storage
 		slice:          newSlice,
 	}
@@ -325,7 +326,7 @@ func (m *HashMap) fillIndexItems(mapData *hashMapData) {
 	}
 	first := list.First()
 	item := first
-	lastIndex := uint64(0)
+	lastIndex := uintptr(0)
 
 	for item != nil {
 		index := item.keyHash >> mapData.keyRightShifts

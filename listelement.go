@@ -7,22 +7,22 @@ import (
 
 // ListElement is an element of the list.
 type ListElement struct {
+	keyHash     uintptr
+	deleted     uintptr // for the root and all deleted items this is set to 1
 	nextElement unsafe.Pointer
 	key         interface{}
-	keyHash     uint64
 	value       unsafe.Pointer
-	deleted     uint64 // for the root and all deleted items this is set to 1
 }
 
 // Value returns the value of the list item.
 func (e *ListElement) Value() (value unsafe.Pointer, ok bool) {
-	if atomic.LoadUint64(&e.deleted) == 1 {
+	if atomic.LoadUintptr(&e.deleted) == 1 {
 		return nil, false
 	}
 	value = atomic.LoadPointer(&e.value)
 	// read again to make sure that the item has not been deleted between the
 	// deleted check and reading of the value
-	if atomic.LoadUint64(&e.deleted) == 1 {
+	if atomic.LoadUintptr(&e.deleted) == 1 {
 		return nil, false
 	}
 	return value, true
@@ -30,7 +30,7 @@ func (e *ListElement) Value() (value unsafe.Pointer, ok bool) {
 
 // Deleted returns whether the item was deleted.
 func (e *ListElement) Deleted() bool {
-	return atomic.LoadUint64(&e.deleted) == 1
+	return atomic.LoadUintptr(&e.deleted) == 1
 }
 
 // Next returns the item on the right.
@@ -41,10 +41,10 @@ func (e *ListElement) Next() *ListElement {
 // SetDeleted sets the deleted flag of the item.
 func (e *ListElement) SetDeleted(deleted bool) bool {
 	if !deleted {
-		return atomic.CompareAndSwapUint64(&e.deleted, 1, 0)
+		return atomic.CompareAndSwapUintptr(&e.deleted, 1, 0)
 	}
 
-	if !atomic.CompareAndSwapUint64(&e.deleted, 0, 1) {
+	if !atomic.CompareAndSwapUintptr(&e.deleted, 0, 1) {
 		return false
 	}
 
@@ -67,11 +67,11 @@ func (e *ListElement) CasValue(from, to unsafe.Pointer) bool {
 // The loaded result is true if the value was loaded, false if stored.
 func (e *ListElement) GetOrSetValue(value unsafe.Pointer) (actual unsafe.Pointer, loaded bool) {
 	for {
-		if atomic.LoadUint64(&e.deleted) == 0 { // inline ListElement.Deleted()
+		if atomic.LoadUintptr(&e.deleted) == 0 { // inline ListElement.Deleted()
 			actual = atomic.LoadPointer(&e.value)
 			// read again to make sure that the item has not been deleted between the
 			// deleted check and reading of the value
-			if atomic.LoadUint64(&e.deleted) == 0 {
+			if atomic.LoadUintptr(&e.deleted) == 0 {
 				return actual, true
 			}
 		}
