@@ -31,6 +31,19 @@ func roundUpPower2(i uint64) uint64 {
 	return i
 }
 
+func roundUpPower2_32(i uint32) uint32 {
+	i--
+	i |= i >> 1
+	i |= i >> 2
+	i |= i >> 4
+	i |= i >> 8
+	i |= i >> 16
+	i++
+	return i
+}
+
+
+
 // log2 computes the binary logarithm of x, rounded up to the next integer.
 func log2(i uint64) uint64 {
 	var n, p uint64
@@ -39,6 +52,16 @@ func log2(i uint64) uint64 {
 	}
 	return n
 }
+
+// log2 computes the binary logarithm of x, rounded up to the next integer.
+func log2_32(i uint32) uint32 {
+	var n, p uint32
+	for p = 1; p < i; p += p {
+		n++
+	}
+	return n
+}
+
 
 // getKeyHash returns a 64 bit hash for the key
 func getKeyHash(key interface{}) uint64 {
@@ -91,4 +114,57 @@ func getKeyHash(key interface{}) uint64 {
 	}
 	buf := *(*[]byte)(unsafe.Pointer(&bh))
 	return siphash.Hash(sipHashKey1, sipHashKey2, buf)
+}
+
+func getKeyHash32(key interface{}) uint32 {
+	var num uint32
+	switch x := key.(type) {
+	case bool:
+		if x {
+			return 1
+		}
+		return 0
+	case string:
+		sh := (*reflect.StringHeader)(unsafe.Pointer(&x))
+		bh := reflect.SliceHeader{
+			Data: sh.Data,
+			Len:  sh.Len,
+			Cap:  sh.Len,
+		}
+		buf := *(*[]byte)(unsafe.Pointer(&bh))
+		return XXHash_GoChecksum32(buf)
+		// return siphash.Hash(sipHashKey1, sipHashKey2, buf)
+	case int:
+		num = uint32(x)
+	case int8:
+		num = uint32(x)
+	case int16:
+		num = uint32(x)
+	case int32:
+		num = uint32(x)
+	case int64:
+		num = uint32(x)
+	case uint:
+		num = uint32(x)
+	case uint8:
+		num = uint32(x)
+	case uint16:
+		num = uint32(x)
+	case uint32:
+		num = uint32(x)
+	case uint64:
+		num = uint32(x)
+	case uintptr:
+		num = uint32(x)
+	default:
+		panic(fmt.Errorf("unsupported key type %T", key))
+	}
+
+	bh := reflect.SliceHeader{
+		Data: uintptr(unsafe.Pointer(&num)),
+		Len:  4,
+		Cap:  4,
+	}
+	buf := *(*[]byte)(unsafe.Pointer(&bh))
+	return XXHash_GoChecksum32(buf)
 }

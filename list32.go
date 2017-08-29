@@ -5,27 +5,27 @@ import (
 	"unsafe"
 )
 
-// List is a sorted list.
-type List struct {
-	count uint64
-	root  *ListElement
+// List32 is a sorted list.
+type List32 struct {
+	count uint32
+	root  *ListElement32
 }
 
-// NewList returns an initialized list.
-func NewList() *List {
-	e := &ListElement{deleted: 1}
+// NewList32 returns an initialized list.
+func NewList32() *List32 {
+	e := &ListElement32{deleted: 1}
 	e.nextElement = unsafe.Pointer(e) // mark as root by pointing to itself
 
-	return &List{root: e}
+	return &List32{root: e}
 }
 
 // Len returns the number of elements within the list.
-func (l *List) Len() uint64 {
-	return atomic.LoadUint64(&l.count)
+func (l *List32) Len() uint32 {
+	return atomic.LoadUint32(&l.count)
 }
 
 // First returns the first item of the list.
-func (l *List) First() *ListElement {
+func (l *List32) First() *ListElement32 {
 	item := l.root.Next()
 	if item != l.root {
 		return item
@@ -34,7 +34,7 @@ func (l *List) First() *ListElement {
 }
 
 // Add adds an item to the list and returns false if an item for the hash existed.
-func (l *List) Add(newElement *ListElement, searchStart *ListElement) (existed bool, inserted bool) {
+func (l *List32) Add(newElement *ListElement32, searchStart *ListElement32) (existed bool, inserted bool) {
 	if searchStart == nil || newElement.keyHash < searchStart.keyHash { // key needs to be inserted on the left? {
 		searchStart = l.root
 	}
@@ -48,7 +48,7 @@ func (l *List) Add(newElement *ListElement, searchStart *ListElement) (existed b
 }
 
 // AddOrUpdate adds or updates an item to the list.
-func (l *List) AddOrUpdate(newElement *ListElement, searchStart *ListElement) bool {
+func (l *List32) AddOrUpdate(newElement *ListElement32, searchStart *ListElement32) bool {
 	if searchStart == nil || newElement.keyHash < searchStart.keyHash { // key needs to be inserted on the left? {
 		searchStart = l.root
 	}
@@ -57,7 +57,7 @@ func (l *List) AddOrUpdate(newElement *ListElement, searchStart *ListElement) bo
 	if found != nil { // existing item found
 		found.SetValue(newElement.value) // update the value
 		if found.SetDeleted(false) {     // try to mark from deleted to not deleted
-			atomic.AddUint64(&l.count, 1)
+			atomic.AddUint32(&l.count, 1)
 		}
 		return true
 	}
@@ -66,7 +66,7 @@ func (l *List) AddOrUpdate(newElement *ListElement, searchStart *ListElement) bo
 }
 
 // Cas compares and swaps the values and add an item to the list.
-func (l *List) Cas(newElement *ListElement, oldValue unsafe.Pointer, searchStart *ListElement) bool {
+func (l *List32) Cas(newElement *ListElement32, oldValue unsafe.Pointer, searchStart *ListElement32) bool {
 	if searchStart == nil || newElement.keyHash < searchStart.keyHash { // key needs to be inserted on the left? {
 		searchStart = l.root
 	}
@@ -78,14 +78,14 @@ func (l *List) Cas(newElement *ListElement, oldValue unsafe.Pointer, searchStart
 
 	if found.CasValue(oldValue, newElement.value) {
 		if found.SetDeleted(false) { // try to mark from deleted to not deleted
-			atomic.AddUint64(&l.count, 1)
+			atomic.AddUint32(&l.count, 1)
 		}
 		return true
 	}
 	return false
 }
 
-func (l *List) search(searchStart *ListElement, item *ListElement) (left *ListElement, found *ListElement, right *ListElement) {
+func (l *List32) search(searchStart *ListElement32, item *ListElement32) (left *ListElement32, found *ListElement32, right *ListElement32) {
 	if searchStart == l.root {
 		found = searchStart.Next()
 		if found == l.root { // no items beside root?
@@ -114,7 +114,7 @@ func (l *List) search(searchStart *ListElement, item *ListElement) (left *ListEl
 	}
 }
 
-func (l *List) insertAt(newElement *ListElement, left *ListElement, right *ListElement) bool {
+func (l *List32) insertAt(newElement *ListElement32, left *ListElement32, right *ListElement32) bool {
 	if left == nil { // insert at root
 		if !atomic.CompareAndSwapPointer(&l.root.nextElement, unsafe.Pointer(l.root), unsafe.Pointer(newElement)) {
 			return false // item was modified concurrently
@@ -126,15 +126,15 @@ func (l *List) insertAt(newElement *ListElement, left *ListElement, right *ListE
 		}
 	}
 
-	atomic.AddUint64(&l.count, 1)
+	atomic.AddUint32(&l.count, 1)
 	return true
 }
 
 // Delete marks the list element as deleted.
-func (l *List) Delete(element *ListElement) {
+func (l *List32) Delete(element *ListElement32) {
 	if !element.SetDeleted(true) {
 		return // element was already deleted
 	}
 
-	atomic.AddUint64(&l.count, ^uint64(0)) // decrease counter
+	atomic.AddUint32(&l.count, ^uint32(0)) // decrease counter
 }
