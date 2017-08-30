@@ -144,13 +144,15 @@ func TestStringer(t *testing.T) {
 
 	m.Set(0, unsafe.Pointer(elephant))
 	s = m.String()
-	if s != "[9257401834698437112]" {
+	hashedKey0 := getKeyHash(0)
+	if s != fmt.Sprintf("[%v]", hashedKey0) {
 		t.Error("1 item map as string does not match:", s)
 	}
 
 	m.Set(1, unsafe.Pointer(monkey))
 	s = m.String()
-	if s != "[1754102016959854353,9257401834698437112]" {
+	hashedKey1 := getKeyHash(1)
+	if s != fmt.Sprintf("[%v,%v]", hashedKey1, hashedKey0) {
 		t.Error("2 item map as string does not match:", s)
 	}
 }

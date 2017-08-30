@@ -56,8 +56,8 @@ func (m *HashMap) GetUintKey(key uintptr) (value unsafe.Pointer, ok bool) {
 
 	bh := reflect.SliceHeader{
 		Data: uintptr(unsafe.Pointer(&key)),
-		Len:  8,
-		Cap:  8,
+		Len:  intSizeBytes,
+		Cap:  intSizeBytes,
 	}
 	buf := *(*[]byte)(unsafe.Pointer(&bh))
 	hashedKey := uintptr(siphash.Hash(sipHashKey1, sipHashKey2, buf))

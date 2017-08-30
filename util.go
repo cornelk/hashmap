@@ -86,8 +86,8 @@ func getKeyHash(key interface{}) uintptr {
 
 	bh := reflect.SliceHeader{
 		Data: uintptr(unsafe.Pointer(&num)),
-		Len:  8,
-		Cap:  8,
+		Len:  intSizeBytes,
+		Cap:  intSizeBytes,
 	}
 	buf := *(*[]byte)(unsafe.Pointer(&bh))
 	return uintptr(siphash.Hash(sipHashKey1, sipHashKey2, buf))
