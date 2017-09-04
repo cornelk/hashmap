@@ -5,7 +5,7 @@ import (
 	"sync/atomic"
 	"unsafe"
 
-	"github.com/dchest/siphash"
+	"github.com/cespare/xxhash"
 )
 
 // Get retrieves an element from the map under given hash key.
@@ -60,7 +60,9 @@ func (m *HashMap) GetUintKey(key uint64) (value unsafe.Pointer, ok bool) {
 		Cap:  8,
 	}
 	buf := *(*[]byte)(unsafe.Pointer(&bh))
-	hashedKey := siphash.Hash(sipHashKey1, sipHashKey2, buf)
+	hash := xxhash.New()
+	hash.Write(buf)
+	hashedKey := hash.Sum64()
 
 	// inline HashMap.getSliceItemForKey()
 	index := hashedKey >> mapData.keyRightShifts
@@ -105,7 +107,9 @@ func (m *HashMap) GetStringKey(key string) (value unsafe.Pointer, ok bool) {
 		Cap:  sh.Len,
 	}
 	buf := *(*[]byte)(unsafe.Pointer(&bh))
-	hashedKey := siphash.Hash(sipHashKey1, sipHashKey2, buf)
+	hash := xxhash.New()
+	hash.Write(buf)
+	hashedKey := hash.Sum64()
 
 	// inline HashMap.getSliceItemForKey()
 	index := hashedKey >> mapData.keyRightShifts
