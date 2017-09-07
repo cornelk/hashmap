@@ -26,13 +26,13 @@ func (m *HashMap) Get(key interface{}) (value unsafe.Pointer, ok bool) {
 	for entry != nil {
 		if entry.keyHash == hashedKey && entry.key == key {
 			// inline ListElement.Value()
-			if atomic.LoadUint64(&entry.deleted) == 1 {
+			if atomic.LoadUintptr(&entry.deleted) == 1 {
 				return nil, false
 			}
 			value = atomic.LoadPointer(&entry.value)
 			// read again to make sure that the item has not been deleted between the
 			// deleted check and reading of the value
-			if atomic.LoadUint64(&entry.deleted) == 1 {
+			if atomic.LoadUintptr(&entry.deleted) == 1 {
 				return nil, false
 			}
 			return value, true
@@ -48,7 +48,7 @@ func (m *HashMap) Get(key interface{}) (value unsafe.Pointer, ok bool) {
 }
 
 // GetUintKey retrieves an element from the map under given integer key.
-func (m *HashMap) GetUintKey(key uint64) (value unsafe.Pointer, ok bool) {
+func (m *HashMap) GetUintKey(key uintptr) (value unsafe.Pointer, ok bool) {
 	mapData := (*hashMapData)(atomic.LoadPointer(&m.mapDataPtr))
 	if mapData == nil {
 		return nil, false
@@ -56,11 +56,11 @@ func (m *HashMap) GetUintKey(key uint64) (value unsafe.Pointer, ok bool) {
 
 	bh := reflect.SliceHeader{
 		Data: uintptr(unsafe.Pointer(&key)),
-		Len:  8,
-		Cap:  8,
+		Len:  intSizeBytes,
+		Cap:  intSizeBytes,
 	}
 	buf := *(*[]byte)(unsafe.Pointer(&bh))
-	hashedKey := siphash.Hash(sipHashKey1, sipHashKey2, buf)
+	hashedKey := uintptr(siphash.Hash(sipHashKey1, sipHashKey2, buf))
 
 	// inline HashMap.getSliceItemForKey()
 	index := hashedKey >> mapData.keyRightShifts
@@ -70,13 +70,13 @@ func (m *HashMap) GetUintKey(key uint64) (value unsafe.Pointer, ok bool) {
 	for entry != nil {
 		if entry.keyHash == hashedKey && entry.key == key {
 			// inline ListElement.Value()
-			if atomic.LoadUint64(&entry.deleted) == 1 {
+			if atomic.LoadUintptr(&entry.deleted) == 1 {
 				return nil, false
 			}
 			value = atomic.LoadPointer(&entry.value)
 			// read again to make sure that the item has not been deleted between the
 			// deleted check and reading of the value
-			if atomic.LoadUint64(&entry.deleted) == 1 {
+			if atomic.LoadUintptr(&entry.deleted) == 1 {
 				return nil, false
 			}
 			return value, true
@@ -105,7 +105,7 @@ func (m *HashMap) GetStringKey(key string) (value unsafe.Pointer, ok bool) {
 		Cap:  sh.Len,
 	}
 	buf := *(*[]byte)(unsafe.Pointer(&bh))
-	hashedKey := siphash.Hash(sipHashKey1, sipHashKey2, buf)
+	hashedKey := uintptr(siphash.Hash(sipHashKey1, sipHashKey2, buf))
 
 	// inline HashMap.getSliceItemForKey()
 	index := hashedKey >> mapData.keyRightShifts
@@ -115,13 +115,13 @@ func (m *HashMap) GetStringKey(key string) (value unsafe.Pointer, ok bool) {
 	for entry != nil {
 		if entry.keyHash == hashedKey && entry.key == key {
 			// inline ListElement.Value()
-			if atomic.LoadUint64(&entry.deleted) == 1 {
+			if atomic.LoadUintptr(&entry.deleted) == 1 {
 				return nil, false
 			}
 			value = atomic.LoadPointer(&entry.value)
 			// read again to make sure that the item has not been deleted between the
 			// deleted check and reading of the value
-			if atomic.LoadUint64(&entry.deleted) == 1 {
+			if atomic.LoadUintptr(&entry.deleted) == 1 {
 				return nil, false
 			}
 			return value, true
@@ -137,7 +137,7 @@ func (m *HashMap) GetStringKey(key string) (value unsafe.Pointer, ok bool) {
 }
 
 // GetHashedKey retrieves an element from the map under given hashed key.
-func (m *HashMap) GetHashedKey(hashedKey uint64) (value unsafe.Pointer, ok bool) {
+func (m *HashMap) GetHashedKey(hashedKey uintptr) (value unsafe.Pointer, ok bool) {
 	// inline HashMap.getSliceItemForKey()
 	mapData := (*hashMapData)(atomic.LoadPointer(&m.mapDataPtr))
 	if mapData == nil {
@@ -150,13 +150,13 @@ func (m *HashMap) GetHashedKey(hashedKey uint64) (value unsafe.Pointer, ok bool)
 	for entry != nil {
 		if entry.keyHash == hashedKey {
 			// inline ListElement.Value()
-			if atomic.LoadUint64(&entry.deleted) == 1 {
+			if atomic.LoadUintptr(&entry.deleted) == 1 {
 				return nil, false
 			}
 			value = atomic.LoadPointer(&entry.value)
 			// read again to make sure that the item has not been deleted between the
 			// deleted check and reading of the value
-			if atomic.LoadUint64(&entry.deleted) == 1 {
+			if atomic.LoadUintptr(&entry.deleted) == 1 {
 				return nil, false
 			}
 			return value, true
@@ -198,7 +198,7 @@ func (m *HashMap) GetOrInsert(key interface{}, value unsafe.Pointer) (actual uns
 				}
 
 				list := m.list()
-				atomic.AddUint64(&list.count, 1)
+				atomic.AddUintptr(&list.count, 1)
 				return value, false
 			}
 

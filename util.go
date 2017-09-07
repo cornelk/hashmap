@@ -19,7 +19,7 @@ const (
 )
 
 // roundUpPower2 rounds a number to the next power of 2.
-func roundUpPower2(i uint64) uint64 {
+func roundUpPower2(i uintptr) uintptr {
 	i--
 	i |= i >> 1
 	i |= i >> 2
@@ -32,17 +32,17 @@ func roundUpPower2(i uint64) uint64 {
 }
 
 // log2 computes the binary logarithm of x, rounded up to the next integer.
-func log2(i uint64) uint64 {
-	var n, p uint64
+func log2(i uintptr) uintptr {
+	var n, p uintptr
 	for p = 1; p < i; p += p {
 		n++
 	}
 	return n
 }
 
-// getKeyHash returns a 64 bit hash for the key
-func getKeyHash(key interface{}) uint64 {
-	var num uint64
+// getKeyHash returns a hash for the key
+func getKeyHash(key interface{}) uintptr {
+	var num uintptr
 	switch x := key.(type) {
 	case bool:
 		if x {
@@ -57,38 +57,38 @@ func getKeyHash(key interface{}) uint64 {
 			Cap:  sh.Len,
 		}
 		buf := *(*[]byte)(unsafe.Pointer(&bh))
-		return siphash.Hash(sipHashKey1, sipHashKey2, buf)
+		return uintptr(siphash.Hash(sipHashKey1, sipHashKey2, buf))
 	case int:
-		num = uint64(x)
+		num = uintptr(x)
 	case int8:
-		num = uint64(x)
+		num = uintptr(x)
 	case int16:
-		num = uint64(x)
+		num = uintptr(x)
 	case int32:
-		num = uint64(x)
+		num = uintptr(x)
 	case int64:
-		num = uint64(x)
+		num = uintptr(x)
 	case uint:
-		num = uint64(x)
+		num = uintptr(x)
 	case uint8:
-		num = uint64(x)
+		num = uintptr(x)
 	case uint16:
-		num = uint64(x)
+		num = uintptr(x)
 	case uint32:
-		num = uint64(x)
+		num = uintptr(x)
 	case uint64:
-		num = uint64(x)
+		num = uintptr(x)
 	case uintptr:
-		num = uint64(x)
+		num = x
 	default:
 		panic(fmt.Errorf("unsupported key type %T", key))
 	}
 
 	bh := reflect.SliceHeader{
 		Data: uintptr(unsafe.Pointer(&num)),
-		Len:  8,
-		Cap:  8,
+		Len:  intSizeBytes,
+		Cap:  intSizeBytes,
 	}
 	buf := *(*[]byte)(unsafe.Pointer(&bh))
-	return siphash.Hash(sipHashKey1, sipHashKey2, buf)
+	return uintptr(siphash.Hash(sipHashKey1, sipHashKey2, buf))
 }

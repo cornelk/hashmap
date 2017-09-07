@@ -7,8 +7,8 @@ import (
 
 // List is a sorted list.
 type List struct {
+	count uintptr
 	root  *ListElement
-	count uint64
 }
 
 // NewList returns an initialized list.
@@ -20,8 +20,8 @@ func NewList() *List {
 }
 
 // Len returns the number of elements within the list.
-func (l *List) Len() uint64 {
-	return atomic.LoadUint64(&l.count)
+func (l *List) Len() int {
+	return int(atomic.LoadUintptr(&l.count))
 }
 
 // First returns the first item of the list.
@@ -57,7 +57,7 @@ func (l *List) AddOrUpdate(newElement *ListElement, searchStart *ListElement) bo
 	if found != nil { // existing item found
 		found.SetValue(newElement.value) // update the value
 		if found.SetDeleted(false) {     // try to mark from deleted to not deleted
-			atomic.AddUint64(&l.count, 1)
+			atomic.AddUintptr(&l.count, 1)
 		}
 		return true
 	}
@@ -78,7 +78,7 @@ func (l *List) Cas(newElement *ListElement, oldValue unsafe.Pointer, searchStart
 
 	if found.CasValue(oldValue, newElement.value) {
 		if found.SetDeleted(false) { // try to mark from deleted to not deleted
-			atomic.AddUint64(&l.count, 1)
+			atomic.AddUintptr(&l.count, 1)
 		}
 		return true
 	}
@@ -126,7 +126,7 @@ func (l *List) insertAt(newElement *ListElement, left *ListElement, right *ListE
 		}
 	}
 
-	atomic.AddUint64(&l.count, 1)
+	atomic.AddUintptr(&l.count, 1)
 	return true
 }
 
@@ -136,5 +136,5 @@ func (l *List) Delete(element *ListElement) {
 		return // element was already deleted
 	}
 
-	atomic.AddUint64(&l.count, ^uint64(0)) // decrease counter
+	atomic.AddUintptr(&l.count, ^uintptr(0)) // decrease counter
 }

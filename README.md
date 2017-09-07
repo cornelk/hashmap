@@ -2,7 +2,7 @@
 
 ## Overview
 
-A Golang thread-safe HashMap optimized for fastest lock-free read access on 64 bit systems.
+A Golang thread-safe HashMap optimized for fastest lock-free read access.
 
 ## Usage
 
