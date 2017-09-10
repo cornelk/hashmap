@@ -5,7 +5,7 @@ import (
 	"unsafe"
 )
 
-// ListElement is an element of the list.
+// ListElement is an element of a list.
 type ListElement struct {
 	keyHash         uintptr
 	previousElement unsafe.Pointer

@@ -12,35 +12,35 @@ import (
 // Using interface{} adds a performance penalty.
 // Please consider using GetUintKey or GetStringKey instead.
 func (m *HashMap) Get(key interface{}) (value unsafe.Pointer, ok bool) {
-	hashedKey := getKeyHash(key)
+	h := getKeyHash(key)
 
-	// inline HashMap.getSliceItemForKey()
-	mapData := (*hashMapData)(atomic.LoadPointer(&m.mapDataPtr))
-	if mapData == nil {
+	// inline HashMap.indexElement()
+	data := (*hashMapData)(atomic.LoadPointer(&m.datamap))
+	if data == nil {
 		return nil, false
 	}
-	index := hashedKey >> mapData.keyRightShifts
-	sliceDataIndexPointer := (*unsafe.Pointer)(unsafe.Pointer(uintptr(mapData.data) + uintptr(index*intSizeBytes)))
-	entry := (*ListElement)(atomic.LoadPointer(sliceDataIndexPointer))
+	index := h >> data.keyshifts
+	ptr := (*unsafe.Pointer)(unsafe.Pointer(uintptr(data.data) + uintptr(index*intSizeBytes)))
+	element := (*ListElement)(atomic.LoadPointer(ptr))
 
-	for entry != nil {
-		if entry.keyHash == hashedKey && entry.key == key {
-			return entry.Value(), true
+	for element != nil {
+		if element.keyHash == h && element.key == key {
+			return element.Value(), true
 		}
 
-		if entry.keyHash > hashedKey {
+		if element.keyHash > h {
 			return nil, false
 		}
 
-		entry = (*ListElement)(atomic.LoadPointer(&entry.nextElement)) // inline ListElement.Next()
+		element = (*ListElement)(atomic.LoadPointer(&element.nextElement)) // inline ListElement.Next()
 	}
 	return nil, false
 }
 
 // GetUintKey retrieves an element from the map under given integer key.
 func (m *HashMap) GetUintKey(key uintptr) (value unsafe.Pointer, ok bool) {
-	mapData := (*hashMapData)(atomic.LoadPointer(&m.mapDataPtr))
-	if mapData == nil {
+	data := (*hashMapData)(atomic.LoadPointer(&m.datamap))
+	if data == nil {
 		return nil, false
 	}
 
@@ -50,31 +50,31 @@ func (m *HashMap) GetUintKey(key uintptr) (value unsafe.Pointer, ok bool) {
 		Cap:  intSizeBytes,
 	}
 	buf := *(*[]byte)(unsafe.Pointer(&bh))
-	hashedKey := uintptr(siphash.Hash(sipHashKey1, sipHashKey2, buf))
+	h := uintptr(siphash.Hash(sipHashKey1, sipHashKey2, buf))
 
-	// inline HashMap.getSliceItemForKey()
-	index := hashedKey >> mapData.keyRightShifts
-	sliceDataIndexPointer := (*unsafe.Pointer)(unsafe.Pointer(uintptr(mapData.data) + uintptr(index*intSizeBytes)))
-	entry := (*ListElement)(atomic.LoadPointer(sliceDataIndexPointer))
+	// inline HashMap.indexElement()
+	index := h >> data.keyshifts
+	ptr := (*unsafe.Pointer)(unsafe.Pointer(uintptr(data.data) + uintptr(index*intSizeBytes)))
+	element := (*ListElement)(atomic.LoadPointer(ptr))
 
-	for entry != nil {
-		if entry.keyHash == hashedKey && entry.key == key {
-			return entry.Value(), true
+	for element != nil {
+		if element.keyHash == h && element.key == key {
+			return element.Value(), true
 		}
 
-		if entry.keyHash > hashedKey {
+		if element.keyHash > h {
 			return nil, false
 		}
 
-		entry = (*ListElement)(atomic.LoadPointer(&entry.nextElement)) // inline ListElement.Next()
+		element = (*ListElement)(atomic.LoadPointer(&element.nextElement)) // inline ListElement.Next()
 	}
 	return nil, false
 }
 
 // GetStringKey retrieves an element from the map under given string key.
 func (m *HashMap) GetStringKey(key string) (value unsafe.Pointer, ok bool) {
-	mapData := (*hashMapData)(atomic.LoadPointer(&m.mapDataPtr))
-	if mapData == nil {
+	data := (*hashMapData)(atomic.LoadPointer(&m.datamap))
+	if data == nil {
 		return nil, false
 	}
 
@@ -85,48 +85,48 @@ func (m *HashMap) GetStringKey(key string) (value unsafe.Pointer, ok bool) {
 		Cap:  sh.Len,
 	}
 	buf := *(*[]byte)(unsafe.Pointer(&bh))
-	hashedKey := uintptr(siphash.Hash(sipHashKey1, sipHashKey2, buf))
+	h := uintptr(siphash.Hash(sipHashKey1, sipHashKey2, buf))
 
-	// inline HashMap.getSliceItemForKey()
-	index := hashedKey >> mapData.keyRightShifts
-	sliceDataIndexPointer := (*unsafe.Pointer)(unsafe.Pointer(uintptr(mapData.data) + uintptr(index*intSizeBytes)))
-	entry := (*ListElement)(atomic.LoadPointer(sliceDataIndexPointer))
+	// inline HashMap.indexElement()
+	index := h >> data.keyshifts
+	ptr := (*unsafe.Pointer)(unsafe.Pointer(uintptr(data.data) + uintptr(index*intSizeBytes)))
+	element := (*ListElement)(atomic.LoadPointer(ptr))
 
-	for entry != nil {
-		if entry.keyHash == hashedKey && entry.key == key {
-			return entry.Value(), true
+	for element != nil {
+		if element.keyHash == h && element.key == key {
+			return element.Value(), true
 		}
 
-		if entry.keyHash > hashedKey {
+		if element.keyHash > h {
 			return nil, false
 		}
 
-		entry = (*ListElement)(atomic.LoadPointer(&entry.nextElement)) // inline ListElement.Next()
+		element = (*ListElement)(atomic.LoadPointer(&element.nextElement)) // inline ListElement.Next()
 	}
 	return nil, false
 }
 
 // GetHashedKey retrieves an element from the map under given hashed key.
 func (m *HashMap) GetHashedKey(hashedKey uintptr) (value unsafe.Pointer, ok bool) {
-	// inline HashMap.getSliceItemForKey()
-	mapData := (*hashMapData)(atomic.LoadPointer(&m.mapDataPtr))
-	if mapData == nil {
+	// inline HashMap.indexElement()
+	data := (*hashMapData)(atomic.LoadPointer(&m.datamap))
+	if data == nil {
 		return nil, false
 	}
-	index := hashedKey >> mapData.keyRightShifts
-	sliceDataIndexPointer := (*unsafe.Pointer)(unsafe.Pointer(uintptr(mapData.data) + uintptr(index*intSizeBytes)))
-	entry := (*ListElement)(atomic.LoadPointer(sliceDataIndexPointer))
+	index := hashedKey >> data.keyshifts
+	ptr := (*unsafe.Pointer)(unsafe.Pointer(uintptr(data.data) + uintptr(index*intSizeBytes)))
+	element := (*ListElement)(atomic.LoadPointer(ptr))
 
-	for entry != nil {
-		if entry.keyHash == hashedKey {
-			return entry.Value(), true
+	for element != nil {
+		if element.keyHash == hashedKey {
+			return element.Value(), true
 		}
 
-		if entry.keyHash > hashedKey {
+		if element.keyHash > hashedKey {
 			return nil, false
 		}
 
-		entry = (*ListElement)(atomic.LoadPointer(&entry.nextElement)) // inline ListElement.Next()
+		element = (*ListElement)(atomic.LoadPointer(&element.nextElement)) // inline ListElement.Next()
 	}
 	return nil, false
 }
@@ -135,43 +135,42 @@ func (m *HashMap) GetHashedKey(hashedKey uintptr) (value unsafe.Pointer, ok bool
 // Otherwise, it stores and returns the given value.
 // The loaded result is true if the value was loaded, false if stored.
 func (m *HashMap) GetOrInsert(key interface{}, value unsafe.Pointer) (actual unsafe.Pointer, loaded bool) {
-	hashedKey := getKeyHash(key)
-	var newEntry *ListElement
+	h := getKeyHash(key)
+	var newelement *ListElement
 
 	for {
-		// inline HashMap.getSliceItemForKey()
-		mapData := (*hashMapData)(atomic.LoadPointer(&m.mapDataPtr))
-		if mapData == nil {
+		// inline HashMap.indexElement()
+		data := (*hashMapData)(atomic.LoadPointer(&m.datamap))
+		if data == nil {
 			m.allocate(DefaultSize)
-			mapData = (*hashMapData)(atomic.LoadPointer(&m.mapDataPtr))
+			data = (*hashMapData)(atomic.LoadPointer(&m.datamap))
 		}
-		index := hashedKey >> mapData.keyRightShifts
-		sliceDataIndexPointer := (*unsafe.Pointer)(unsafe.Pointer(uintptr(mapData.data) + uintptr(index*intSizeBytes)))
-		sliceItem := (*ListElement)(atomic.LoadPointer(sliceDataIndexPointer))
+		index := h >> data.keyshifts
+		ptr := (*unsafe.Pointer)(unsafe.Pointer(uintptr(data.data) + uintptr(index*intSizeBytes)))
+		element := (*ListElement)(atomic.LoadPointer(ptr))
 
-		entry := sliceItem
-		for entry != nil {
-			if entry.keyHash == hashedKey && entry.key == key {
-				actual = entry.Value()
+		for element != nil {
+			if element.keyHash == h && element.key == key {
+				actual = element.Value()
 				return actual, true
 			}
 
-			if entry.keyHash > hashedKey {
+			if element.keyHash > h {
 				break
 			}
 
-			entry = (*ListElement)(atomic.LoadPointer(&entry.nextElement)) // inline ListElement.Next()
+			element = (*ListElement)(atomic.LoadPointer(&element.nextElement)) // inline ListElement.Next()
 		}
 
-		if newEntry == nil { // allocate only once
-			newEntry = &ListElement{
+		if newelement == nil { // allocate only once
+			newelement = &ListElement{
 				key:     key,
-				keyHash: hashedKey,
+				keyHash: h,
 				value:   value,
 			}
 		}
 
-		if m.insertListElement(newEntry, false) {
+		if m.insertListElement(newelement, false) {
 			return value, false
 		}
 	}
