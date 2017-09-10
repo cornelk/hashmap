@@ -25,17 +25,7 @@ func (m *HashMap) Get(key interface{}) (value unsafe.Pointer, ok bool) {
 
 	for entry != nil {
 		if entry.keyHash == hashedKey && entry.key == key {
-			// inline ListElement.Value()
-			if atomic.LoadUintptr(&entry.deleted) == 1 {
-				return nil, false
-			}
-			value = atomic.LoadPointer(&entry.value)
-			// read again to make sure that the item has not been deleted between the
-			// deleted check and reading of the value
-			if atomic.LoadUintptr(&entry.deleted) == 1 {
-				return nil, false
-			}
-			return value, true
+			return entry.Value(), true
 		}
 
 		if entry.keyHash > hashedKey {
@@ -69,17 +59,7 @@ func (m *HashMap) GetUintKey(key uintptr) (value unsafe.Pointer, ok bool) {
 
 	for entry != nil {
 		if entry.keyHash == hashedKey && entry.key == key {
-			// inline ListElement.Value()
-			if atomic.LoadUintptr(&entry.deleted) == 1 {
-				return nil, false
-			}
-			value = atomic.LoadPointer(&entry.value)
-			// read again to make sure that the item has not been deleted between the
-			// deleted check and reading of the value
-			if atomic.LoadUintptr(&entry.deleted) == 1 {
-				return nil, false
-			}
-			return value, true
+			return entry.Value(), true
 		}
 
 		if entry.keyHash > hashedKey {
@@ -114,17 +94,7 @@ func (m *HashMap) GetStringKey(key string) (value unsafe.Pointer, ok bool) {
 
 	for entry != nil {
 		if entry.keyHash == hashedKey && entry.key == key {
-			// inline ListElement.Value()
-			if atomic.LoadUintptr(&entry.deleted) == 1 {
-				return nil, false
-			}
-			value = atomic.LoadPointer(&entry.value)
-			// read again to make sure that the item has not been deleted between the
-			// deleted check and reading of the value
-			if atomic.LoadUintptr(&entry.deleted) == 1 {
-				return nil, false
-			}
-			return value, true
+			return entry.Value(), true
 		}
 
 		if entry.keyHash > hashedKey {
@@ -149,17 +119,7 @@ func (m *HashMap) GetHashedKey(hashedKey uintptr) (value unsafe.Pointer, ok bool
 
 	for entry != nil {
 		if entry.keyHash == hashedKey {
-			// inline ListElement.Value()
-			if atomic.LoadUintptr(&entry.deleted) == 1 {
-				return nil, false
-			}
-			value = atomic.LoadPointer(&entry.value)
-			// read again to make sure that the item has not been deleted between the
-			// deleted check and reading of the value
-			if atomic.LoadUintptr(&entry.deleted) == 1 {
-				return nil, false
-			}
-			return value, true
+			return entry.Value(), true
 		}
 
 		if entry.keyHash > hashedKey {
@@ -192,14 +152,8 @@ func (m *HashMap) GetOrInsert(key interface{}, value unsafe.Pointer) (actual uns
 		entry := sliceItem
 		for entry != nil {
 			if entry.keyHash == hashedKey && entry.key == key {
-				actual, loaded := entry.GetOrSetValue(value)
-				if loaded {
-					return actual, true
-				}
-
-				list := m.list()
-				atomic.AddUintptr(&list.count, 1)
-				return value, false
+				actual = entry.Value()
+				return actual, true
 			}
 
 			if entry.keyHash > hashedKey {

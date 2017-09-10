@@ -5,7 +5,7 @@ import (
 	"unsafe"
 )
 
-// List is a sorted list.
+// List is a sorted doubly linked list.
 type List struct {
 	count uintptr
 	root  *ListElement
@@ -13,10 +13,8 @@ type List struct {
 
 // NewList returns an initialized list.
 func NewList() *List {
-	e := &ListElement{deleted: 1}
-	e.nextElement = unsafe.Pointer(e) // mark as root by pointing to itself
-
-	return &List{root: e}
+	root := &ListElement{}
+	return &List{root: root}
 }
 
 // Len returns the number of elements within the list.
@@ -26,11 +24,7 @@ func (l *List) Len() int {
 
 // First returns the first item of the list.
 func (l *List) First() *ListElement {
-	item := l.root.Next()
-	if item != l.root {
-		return item
-	}
-	return nil
+	return l.root.Next()
 }
 
 // Add adds an item to the list and returns false if an item for the hash existed.
@@ -56,9 +50,6 @@ func (l *List) AddOrUpdate(newElement *ListElement, searchStart *ListElement) bo
 	left, found, right := l.search(searchStart, newElement)
 	if found != nil { // existing item found
 		found.SetValue(newElement.value) // update the value
-		if found.SetDeleted(false) {     // try to mark from deleted to not deleted
-			atomic.AddUintptr(&l.count, 1)
-		}
 		return true
 	}
 
@@ -77,9 +68,7 @@ func (l *List) Cas(newElement *ListElement, oldValue unsafe.Pointer, searchStart
 	}
 
 	if found.CasValue(oldValue, newElement.value) {
-		if found.SetDeleted(false) { // try to mark from deleted to not deleted
-			atomic.AddUintptr(&l.count, 1)
-		}
+		atomic.AddUintptr(&l.count, 1)
 		return true
 	}
 	return false
@@ -88,7 +77,7 @@ func (l *List) Cas(newElement *ListElement, oldValue unsafe.Pointer, searchStart
 func (l *List) search(searchStart *ListElement, item *ListElement) (left *ListElement, found *ListElement, right *ListElement) {
 	if searchStart == l.root {
 		found = searchStart.Next()
-		if found == l.root { // no items beside root?
+		if found == nil { // no items beside root?
 			return nil, nil, nil
 		}
 		left = searchStart
@@ -116,10 +105,11 @@ func (l *List) search(searchStart *ListElement, item *ListElement) (left *ListEl
 
 func (l *List) insertAt(newElement *ListElement, left *ListElement, right *ListElement) bool {
 	if left == nil { // insert at root
-		if !atomic.CompareAndSwapPointer(&l.root.nextElement, unsafe.Pointer(l.root), unsafe.Pointer(newElement)) {
+		if !atomic.CompareAndSwapPointer(&l.root.nextElement, unsafe.Pointer(nil), unsafe.Pointer(newElement)) {
 			return false // item was modified concurrently
 		}
 	} else {
+		newElement.previousElement = unsafe.Pointer(left)
 		newElement.nextElement = unsafe.Pointer(right)
 		if !atomic.CompareAndSwapPointer(&left.nextElement, unsafe.Pointer(right), unsafe.Pointer(newElement)) {
 			return false // item was modified concurrently
@@ -132,8 +122,15 @@ func (l *List) insertAt(newElement *ListElement, left *ListElement, right *ListE
 
 // Delete marks the list element as deleted.
 func (l *List) Delete(element *ListElement) {
-	if !element.SetDeleted(true) {
-		return // element was already deleted
+	for {
+		left := element.Previous()
+		right := element.Next()
+		if left != nil {
+			if !atomic.CompareAndSwapPointer(&left.nextElement, unsafe.Pointer(element), unsafe.Pointer(right)) {
+				continue // item was modified concurrently
+			}
+		}
+		break
 	}
 
 	atomic.AddUintptr(&l.count, ^uintptr(0)) // decrease counter

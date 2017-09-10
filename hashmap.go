@@ -103,16 +103,40 @@ func (m *HashMap) Del(key interface{}) {
 	}
 
 	hashedKey := getKeyHash(key)
-	for _, entry := m.getSliceItemForKey(hashedKey); entry != nil; entry = entry.Next() {
+
+	var entry *ListElement
+	for _, entry = m.getSliceItemForKey(hashedKey); entry != nil; entry = entry.Next() {
 		if entry.keyHash == hashedKey && entry.key == key {
-			list.Delete(entry)
-			return
+			break
 		}
 
 		if entry.keyHash > hashedKey {
 			return
 		}
 	}
+	if entry == nil {
+		return
+	}
+
+	// remove from index first
+	for {
+		mapData := m.mapData()
+		index := entry.keyHash >> mapData.keyRightShifts
+		sliceDataIndexPointer := (*unsafe.Pointer)(unsafe.Pointer(uintptr(mapData.data) + uintptr(index*intSizeBytes)))
+
+		next := entry.Next()
+		if next != nil && entry.keyHash>>mapData.keyRightShifts != index {
+			next = nil // do not set index to next item if it's not the same slice index
+		}
+		atomic.CompareAndSwapPointer(sliceDataIndexPointer, unsafe.Pointer(entry), unsafe.Pointer(next))
+
+		currentMapData := m.mapData()
+		if mapData == currentMapData { // check that no resize happened
+			break
+		}
+	}
+
+	list.Delete(entry)
 }
 
 // DelHashedKey deletes the hashed key from the map.
@@ -122,13 +146,21 @@ func (m *HashMap) DelHashedKey(hashedKey uintptr) {
 		return
 	}
 
-	for _, entry := m.getSliceItemForKey(hashedKey); entry != nil; entry = entry.Next() {
-		if entry.keyHash == hashedKey {
-			list.Delete(entry)
-			return
-		}
+	_, entry := m.getSliceItemForKey(hashedKey)
+	if entry == nil {
+		return
+	}
 
-		if entry.keyHash > hashedKey {
+	list.Delete(entry)
+
+	for {
+		mapData := m.mapData()
+		index := entry.keyHash >> mapData.keyRightShifts
+		sliceDataIndexPointer := (*unsafe.Pointer)(unsafe.Pointer(uintptr(mapData.data) + uintptr(index*intSizeBytes)))
+		atomic.CompareAndSwapPointer(sliceDataIndexPointer, unsafe.Pointer(entry), nil)
+
+		currentMapData := m.mapData()
+		if mapData == currentMapData { // check that no resize happened
 			return
 		}
 	}
@@ -331,10 +363,8 @@ func (m *HashMap) fillIndexItems(mapData *hashMapData) {
 	for item != nil {
 		index := item.keyHash >> mapData.keyRightShifts
 		if item == first || index != lastIndex { // store item with smallest hash key for every index
-			if !item.Deleted() {
-				mapData.addItemToIndex(item)
-				lastIndex = index
-			}
+			mapData.addItemToIndex(item)
+			lastIndex = index
 		}
 		item = item.Next()
 	}
@@ -354,13 +384,10 @@ func (m *HashMap) String() string {
 	item := first
 
 	for item != nil {
-		if !item.Deleted() {
-			if item != first {
-				buffer.WriteRune(',')
-			}
-			fmt.Fprint(buffer, item.keyHash)
+		if item != first {
+			buffer.WriteRune(',')
 		}
-
+		fmt.Fprint(buffer, item.keyHash)
 		item = item.Next()
 	}
 	buffer.WriteRune(']')
@@ -380,10 +407,8 @@ func (m *HashMap) Iter() <-chan KeyValue {
 		}
 		item := list.First()
 		for item != nil {
-			value, ok := item.Value()
-			if ok {
-				ch <- KeyValue{item.key, value}
-			}
+			value := item.Value()
+			ch <- KeyValue{item.key, value}
 			item = item.Next()
 		}
 		close(ch)

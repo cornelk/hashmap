@@ -10,7 +10,7 @@ func TestListNew(t *testing.T) {
 	}
 
 	n = l.root.Next()
-	if n != l.root {
-		t.Error("Next element of empty list should be root.")
+	if n != nil {
+		t.Error("Next element of empty list should be nil.")
 	}
 }

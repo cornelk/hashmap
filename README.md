@@ -34,37 +34,37 @@ count := atomic.LoadInt64(counter) // read counter
 
 ## Benchmarks
 
-Reading from the hash map in a thread-safe way is as fast as reading from a standard Golang map in an unsafe way and 3 times faster than reading from the [Golang syncmap](https://github.com/golang/sync/tree/master/syncmap):
+Reading from the hash map in a thread-safe way is nearly as fast as reading from a standard Golang map in an unsafe way and twice as fast as Go's `sync.Map`:
 
 ```
-BenchmarkReadHashMapUint-8                	 2000000	      6614 ns/op
-BenchmarkReadGoMapUintUnsafe-8            	 2000000	      6284 ns/op
-BenchmarkReadGoMapUintMutex-8             	  300000	     48435 ns/op
-BenchmarkReadGoSyncMapUint-8              	 1000000	     15541 ns/op
+BenchmarkReadHashMapUint-8                	 1000000	      6633 ns/op
+BenchmarkReadGoMapUintUnsafe-8            	 1000000	      5875 ns/op
+BenchmarkReadGoMapUintMutex-8             	  200000	     44339 ns/op
+BenchmarkReadGoSyncMapUint-8              	  500000	     14350 ns/op
 ```
 
 If the keys of the map are already hashes, no extra hashing needs to be done by the map:
 
 ```
-BenchmarkReadHashMapHashedKey-8           	10000000	      1564 ns/op
+BenchmarkReadHashMapHashedKey-8           	 5000000	      1632 ns/op
 ```
 
 Reading from the map while writes are happening:
 ```
-BenchmarkReadHashMapWithWritesUint-8      	 2000000	      8714 ns/op
-BenchmarkReadGoMapWithWritesUintMutex-8   	  100000	    172649 ns/op
-BenchmarkReadGoSyncMapWithWritesUint-8    	  300000	     37157 ns/op
+BenchmarkReadHashMapWithWritesUint-8      	 1000000	      8314 ns/op
+BenchmarkReadGoMapWithWritesUintMutex-8   	   50000	    171032 ns/op
+BenchmarkReadGoSyncMapWithWritesUint-8    	  200000	     71992 ns/op
 ```
 
 Write performance without any concurrent reads:
 
 ```
-BenchmarkWriteHashMapUint-8               	  100000	    225702 ns/op
-BenchmarkWriteGoMapMutexUint-8            	  300000	     59474 ns/op
-BenchmarkWriteGoSyncMapUint-8             	  100000	    143835 ns/op
+BenchmarkWriteHashMapUint-8               	   50000	    182276 ns/op
+BenchmarkWriteGoMapMutexUint-8            	  200000	     51174 ns/op
+BenchmarkWriteGoSyncMapUint-8             	   50000	    124758 ns/op
 ```
 
-The benchmarks were run with Golang 1.8 on MacOS.
+The benchmarks were run with Golang 1.9 on MacOS.
 
 ## Technical details
 
@@ -72,7 +72,7 @@ The benchmarks were run with Golang 1.8 on MacOS.
 
 * The API uses [unsafe.Pointer](https://golang.org/pkg/unsafe/#Pointer) instead of the common interface{} for the values for faster speed when reading values.
 
-* The library uses a sorted linked list and a slice as an index into that list.
+* The library uses a sorted doubly linked list and a slice as an index into that list.
 
 * The Get() function contains helper functions that have been inlined manually until the Golang compiler will inline them automatically. Golang 1.9 will bring inlining optimizations.
 
