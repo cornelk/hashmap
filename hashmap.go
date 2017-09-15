@@ -59,19 +59,11 @@ func (m *HashMap) list() *List {
 }
 
 func (m *HashMap) allocate(newSize uintptr) {
-	if !atomic.CompareAndSwapUintptr(&m.resizing, uintptr(0), uintptr(1)) {
-		return
-	}
-	defer atomic.CompareAndSwapUintptr(&m.resizing, uintptr(1), uintptr(0))
-
-	data := m.mapData()
-	if data != nil { // check that no other allocation happened
-		return
-	}
-
 	list := NewList()
-	atomic.StorePointer(&m.linkedlist, unsafe.Pointer(list))
-	m.grow(newSize)
+	// atomic swap in case of another allocation happening concurrently
+	if atomic.CompareAndSwapPointer(&m.linkedlist, nil, unsafe.Pointer(list)) {
+		m.grow(newSize)
+	}
 }
 
 // Fillrate returns the fill rate of the map as an percentage integer.
@@ -89,14 +81,10 @@ func (m *HashMap) checkFillrate(data *hashMapData, count uintptr) {
 	if fillRate < MaxFillRate { // check if the slice needs to be resized
 		return
 	}
-	if !atomic.CompareAndSwapUintptr(&m.resizing, uintptr(0), uintptr(1)) {
-		return
-	}
 	currentdata := m.mapData()
 	if data == currentdata { // double check that no other resize happened
-		m.grow(0)
+		go m.grow(0)
 	}
-	atomic.CompareAndSwapUintptr(&m.resizing, uintptr(1), uintptr(0))
 }
 
 func (m *HashMap) indexElement(hashedKey uintptr) (data *hashMapData, item *ListElement) {
@@ -312,14 +300,14 @@ func (mapData *hashMapData) addItemToIndex(item *ListElement) uintptr {
 // Grow resizes the hashmap to a new size, gets rounded up to next power of 2.
 // To double the size of the hashmap use newSize 0.
 func (m *HashMap) Grow(newSize uintptr) {
-	if !atomic.CompareAndSwapUintptr(&m.resizing, uintptr(0), uintptr(1)) {
-		return
-	}
-	m.grow(newSize)
-	atomic.CompareAndSwapUintptr(&m.resizing, uintptr(1), uintptr(0))
+	go m.grow(newSize)
 }
 
 func (m *HashMap) grow(newSize uintptr) {
+	if !atomic.CompareAndSwapUintptr(&m.resizing, uintptr(0), uintptr(1)) {
+		return
+	}
+
 	data := m.mapData()
 	if newSize == 0 {
 		newSize = uintptr(len(data.index)) << 1
@@ -341,6 +329,8 @@ func (m *HashMap) grow(newSize uintptr) {
 	atomic.StorePointer(&m.datamap, unsafe.Pointer(newdata))
 
 	m.fillIndexItems(newdata) // make sure that the new index is up to date with the current state of the linked list
+
+	atomic.CompareAndSwapUintptr(&m.resizing, uintptr(1), uintptr(0))
 }
 
 func (m *HashMap) fillIndexItems(mapData *hashMapData) {
