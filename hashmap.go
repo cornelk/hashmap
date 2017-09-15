@@ -62,7 +62,9 @@ func (m *HashMap) allocate(newSize uintptr) {
 	list := NewList()
 	// atomic swap in case of another allocation happening concurrently
 	if atomic.CompareAndSwapPointer(&m.linkedlist, nil, unsafe.Pointer(list)) {
-		m.grow(newSize)
+		if atomic.CompareAndSwapUintptr(&m.resizing, uintptr(0), uintptr(1)) {
+			m.grow(newSize, false)
+		}
 	}
 }
 
@@ -74,17 +76,13 @@ func (m *HashMap) Fillrate() uintptr {
 	return (count * 100) / l
 }
 
-func (m *HashMap) checkFillrate(data *hashMapData, count uintptr) {
+func (m *HashMap) resizeNeeded(data *hashMapData, count uintptr) bool {
 	l := uintptr(len(data.index))
+	if l == 0 {
+		return false
+	}
 	fillRate := (count * 100) / l
-
-	if fillRate < MaxFillRate { // check if the slice needs to be resized
-		return
-	}
-	currentdata := m.mapData()
-	if data == currentdata { // double check that no other resize happened
-		go m.grow(0)
-	}
+	return fillRate > MaxFillRate
 }
 
 func (m *HashMap) indexElement(hashedKey uintptr) (data *hashMapData, item *ListElement) {
@@ -231,8 +229,10 @@ func (m *HashMap) insertListElement(element *ListElement, update bool) bool {
 		}
 
 		count := data.addItemToIndex(element)
-		if count != 0 {
-			m.checkFillrate(data, count)
+		if m.resizeNeeded(data, count) {
+			if atomic.CompareAndSwapUintptr(&m.resizing, uintptr(0), uintptr(1)) {
+				go m.grow(0, true)
+			}
 		}
 		return true
 	}
@@ -260,8 +260,10 @@ func (m *HashMap) CasHashedKey(hashedKey uintptr, from, to unsafe.Pointer) bool 
 		}
 
 		count := data.addItemToIndex(element)
-		if count != 0 {
-			m.checkFillrate(data, count)
+		if m.resizeNeeded(data, count) {
+			if atomic.CompareAndSwapUintptr(&m.resizing, uintptr(0), uintptr(1)) {
+				go m.grow(0, true)
+			}
 		}
 		return true
 	}
@@ -299,38 +301,51 @@ func (mapData *hashMapData) addItemToIndex(item *ListElement) uintptr {
 
 // Grow resizes the hashmap to a new size, gets rounded up to next power of 2.
 // To double the size of the hashmap use newSize 0.
+// This function returns immediately, the resize operation is done in a goroutine.
+// No resizing is done in case of another resize operation already being in progress.
 func (m *HashMap) Grow(newSize uintptr) {
-	go m.grow(newSize)
+	if atomic.CompareAndSwapUintptr(&m.resizing, uintptr(0), uintptr(1)) {
+		go m.grow(newSize, true)
+	}
 }
 
-func (m *HashMap) grow(newSize uintptr) {
-	if !atomic.CompareAndSwapUintptr(&m.resizing, uintptr(0), uintptr(1)) {
-		return
+func (m *HashMap) grow(newSize uintptr, loop bool) {
+	defer atomic.CompareAndSwapUintptr(&m.resizing, uintptr(1), uintptr(0))
+
+	for {
+		data := m.mapData()
+		if newSize == 0 {
+			newSize = uintptr(len(data.index)) << 1
+		} else {
+			newSize = roundUpPower2(newSize)
+		}
+
+		index := make([]*ListElement, newSize)
+		header := (*reflect.SliceHeader)(unsafe.Pointer(&index))
+
+		newdata := &hashMapData{
+			keyshifts: strconv.IntSize - log2(newSize),
+			data:      unsafe.Pointer(header.Data), // use address of slice data storage
+			index:     index,
+		}
+
+		m.fillIndexItems(newdata) // initialize new index slice with longer keys
+
+		atomic.StorePointer(&m.datamap, unsafe.Pointer(newdata))
+
+		m.fillIndexItems(newdata) // make sure that the new index is up to date with the current state of the linked list
+
+		if !loop {
+			break
+		}
+
+		// check if a new resize needs to be done already
+		count := uintptr(m.Len())
+		if !m.resizeNeeded(newdata, count) {
+			break
+		}
+		newSize = 0 // 0 means double the current size
 	}
-
-	data := m.mapData()
-	if newSize == 0 {
-		newSize = uintptr(len(data.index)) << 1
-	} else {
-		newSize = roundUpPower2(newSize)
-	}
-
-	index := make([]*ListElement, newSize)
-	header := (*reflect.SliceHeader)(unsafe.Pointer(&index))
-
-	newdata := &hashMapData{
-		keyshifts: strconv.IntSize - log2(newSize),
-		data:      unsafe.Pointer(header.Data), // use address of slice data storage
-		index:     index,
-	}
-
-	m.fillIndexItems(newdata) // initialize new index slice with longer keys
-
-	atomic.StorePointer(&m.datamap, unsafe.Pointer(newdata))
-
-	m.fillIndexItems(newdata) // make sure that the new index is up to date with the current state of the linked list
-
-	atomic.CompareAndSwapUintptr(&m.resizing, uintptr(1), uintptr(0))
 }
 
 func (m *HashMap) fillIndexItems(mapData *hashMapData) {

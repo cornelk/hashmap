@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"sync/atomic"
 	"testing"
+	"time"
 	"unsafe"
 )
 
@@ -120,8 +121,15 @@ func TestResize(t *testing.T) {
 		t.Error("Expected element count did not match.")
 	}
 
-	if m.Fillrate() < 30 {
-		t.Error("Expecting >= 30 percent fillrate.")
+	for { // make sure to wait for resize operation to finish
+		if atomic.LoadUintptr(&m.resizing) == 0 {
+			break
+		}
+		time.Sleep(time.Microsecond * 50)
+	}
+
+	if m.Fillrate() != 34 {
+		t.Error("Expecting 34 percent fillrate.")
 	}
 
 	for i := 0; i < itemCount; i++ {
