@@ -96,7 +96,7 @@ func (m *HashMap) indexElement(hashedKey uintptr) (data *hashMapData, item *List
 	return data, item
 }
 
-// Del deletes the hashed key from the map.
+// Del deletes the key from the map.
 func (m *HashMap) Del(key interface{}) {
 	list := m.list()
 	if list == nil {
@@ -119,24 +119,7 @@ func (m *HashMap) Del(key interface{}) {
 		return
 	}
 
-	// remove from index first
-	for {
-		data := m.mapData()
-		index := element.keyHash >> data.keyshifts
-		ptr := (*unsafe.Pointer)(unsafe.Pointer(uintptr(data.data) + uintptr(index*intSizeBytes)))
-
-		next := element.Next()
-		if next != nil && element.keyHash>>data.keyshifts != index {
-			next = nil // do not set index to next item if it's not the same slice index
-		}
-		atomic.CompareAndSwapPointer(ptr, unsafe.Pointer(element), unsafe.Pointer(next))
-
-		currentdata := m.mapData()
-		if data == currentdata { // check that no resize happened
-			break
-		}
-	}
-
+	m.deleteElement(element)
 	list.Delete(element)
 }
 
@@ -152,17 +135,26 @@ func (m *HashMap) DelHashedKey(hashedKey uintptr) {
 		return
 	}
 
+	m.deleteElement(element)
 	list.Delete(element)
+}
 
+// deleteElement deletes an element from index
+func (m *HashMap) deleteElement(element *ListElement) {
 	for {
 		data := m.mapData()
 		index := element.keyHash >> data.keyshifts
 		ptr := (*unsafe.Pointer)(unsafe.Pointer(uintptr(data.data) + uintptr(index*intSizeBytes)))
-		atomic.CompareAndSwapPointer(ptr, unsafe.Pointer(element), nil)
+
+		next := element.Next()
+		if next != nil && element.keyHash>>data.keyshifts != index {
+			next = nil // do not set index to next item if it's not the same slice index
+		}
+		atomic.CompareAndSwapPointer(ptr, unsafe.Pointer(element), unsafe.Pointer(next))
 
 		currentdata := m.mapData()
 		if data == currentdata { // check that no resize happened
-			return
+			break
 		}
 	}
 }
