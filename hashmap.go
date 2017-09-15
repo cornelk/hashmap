@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"reflect"
 	"strconv"
-	"sync"
 	"sync/atomic"
 	"unsafe"
 )
@@ -28,7 +27,7 @@ type (
 	HashMap struct {
 		datamap    unsafe.Pointer // pointer to a map instance that gets replaced if the map resizes
 		linkedlist unsafe.Pointer // key sorted linked list of elements
-		resizing   sync.Mutex     // mutex that is only used for resize operations
+		resizing   uintptr        // flag that marks a resizing operation in progress
 	}
 
 	// KeyValue represents a key/value that is returned by the iterator.
@@ -60,8 +59,10 @@ func (m *HashMap) list() *List {
 }
 
 func (m *HashMap) allocate(newSize uintptr) {
-	m.resizing.Lock()
-	defer m.resizing.Unlock()
+	if !atomic.CompareAndSwapUintptr(&m.resizing, uintptr(0), uintptr(1)) {
+		return
+	}
+	defer atomic.CompareAndSwapUintptr(&m.resizing, uintptr(1), uintptr(0))
 
 	data := m.mapData()
 	if data != nil { // check that no other allocation happened
@@ -79,6 +80,23 @@ func (m *HashMap) Fillrate() uintptr {
 	count := atomic.LoadUintptr(&data.count)
 	l := uintptr(len(data.index))
 	return (count * 100) / l
+}
+
+func (m *HashMap) checkFillrate(data *hashMapData, count uintptr) {
+	l := uintptr(len(data.index))
+	fillRate := (count * 100) / l
+
+	if fillRate < MaxFillRate { // check if the slice needs to be resized
+		return
+	}
+	if !atomic.CompareAndSwapUintptr(&m.resizing, uintptr(0), uintptr(1)) {
+		return
+	}
+	currentdata := m.mapData()
+	if data == currentdata { // double check that no other resize happened
+		m.grow(0)
+	}
+	atomic.CompareAndSwapUintptr(&m.resizing, uintptr(1), uintptr(0))
 }
 
 func (m *HashMap) indexElement(hashedKey uintptr) (data *hashMapData, item *ListElement) {
@@ -226,17 +244,7 @@ func (m *HashMap) insertListElement(element *ListElement, update bool) bool {
 
 		count := data.addItemToIndex(element)
 		if count != 0 {
-			lLen := uintptr(len(data.index))
-			fillRate := (count * 100) / lLen
-
-			if fillRate > MaxFillRate { // check if the slice needs to be resized
-				m.resizing.Lock()
-				currentdata := m.mapData()
-				if data == currentdata { // double check that no other resize happened
-					m.grow(0)
-				}
-				m.resizing.Unlock()
-			}
+			m.checkFillrate(data, count)
 		}
 		return true
 	}
@@ -265,17 +273,7 @@ func (m *HashMap) CasHashedKey(hashedKey uintptr, from, to unsafe.Pointer) bool 
 
 		count := data.addItemToIndex(element)
 		if count != 0 {
-			l := uintptr(len(data.index))
-			fillRate := (count * 100) / l
-
-			if fillRate > MaxFillRate { // check if the slice needs to be resized
-				m.resizing.Lock()
-				currentdata := m.mapData()
-				if data == currentdata { // double check that no other resize happened
-					m.grow(0)
-				}
-				m.resizing.Unlock()
-			}
+			m.checkFillrate(data, count)
 		}
 		return true
 	}
@@ -314,9 +312,11 @@ func (mapData *hashMapData) addItemToIndex(item *ListElement) uintptr {
 // Grow resizes the hashmap to a new size, gets rounded up to next power of 2.
 // To double the size of the hashmap use newSize 0.
 func (m *HashMap) Grow(newSize uintptr) {
-	m.resizing.Lock()
+	if !atomic.CompareAndSwapUintptr(&m.resizing, uintptr(0), uintptr(1)) {
+		return
+	}
 	m.grow(newSize)
-	m.resizing.Unlock()
+	atomic.CompareAndSwapUintptr(&m.resizing, uintptr(1), uintptr(0))
 }
 
 func (m *HashMap) grow(newSize uintptr) {

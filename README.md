@@ -2,7 +2,7 @@
 
 ## Overview
 
-A Golang thread-safe HashMap optimized for fastest lock-free read access.
+A Golang lock-free thread-safe HashMap optimized for fastest read access.
 
 ## Usage
 
@@ -79,5 +79,3 @@ The benchmarks were run with Golang 1.9 on MacOS.
 * It optimizes the slice access by circumventing the Golang size check when reading from the slice. Once a slice is allocated, the size of it does not change.
   The library limits the index into the slice, therefor the Golang size check is obsolete. When the slice reaches a defined fill rate, a bigger slice is allocated
 and all keys are recalculated and transferred into the new slice.
-
-* The resize operation uses a lock to ensure that only one resize operation is happening. This way, no CPU and memory resources are wasted by multiple goroutines working on the resize.
