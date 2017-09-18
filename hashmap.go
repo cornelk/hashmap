@@ -238,27 +238,18 @@ func (m *HashMap) CasHashedKey(hashedKey uintptr, from, to unsafe.Pointer) bool 
 		value:   to,
 	}
 
-	for {
-		data, existing := m.indexElement(hashedKey)
-		if data == nil {
-			return false
-		}
-		list := m.list()
-		if list == nil {
-			return false
-		}
-		if !list.Cas(element, from, existing) {
-			return false
-		}
-
-		count := data.addItemToIndex(element)
-		if m.resizeNeeded(data, count) {
-			if atomic.CompareAndSwapUintptr(&m.resizing, uintptr(0), uintptr(1)) {
-				go m.grow(0, true)
-			}
-		}
-		return true
+	data, existing := m.indexElement(hashedKey)
+	if data == nil {
+		return false
 	}
+	list := m.list()
+	if list == nil {
+		return false
+	}
+	if !list.Cas(element, from, existing) {
+		return false
+	}
+	return true
 }
 
 // Cas performs a compare and swap operation sets the value under the specified hash key to the map. An existing item for this key will be overwritten.
