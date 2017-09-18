@@ -40,15 +40,10 @@ func log2(i uintptr) uintptr {
 	return n
 }
 
-// getKeyHash returns a hash for the key
+// getKeyHash returns a hash for the key. Only string and number types are supported.
 func getKeyHash(key interface{}) uintptr {
 	var num uintptr
 	switch x := key.(type) {
-	case bool:
-		if x {
-			return 1
-		}
-		return 0
 	case string:
 		sh := (*reflect.StringHeader)(unsafe.Pointer(&x))
 		bh := reflect.SliceHeader{
