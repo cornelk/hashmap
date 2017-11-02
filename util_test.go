@@ -25,25 +25,30 @@ func TestLog2(t *testing.T) {
 }
 
 func TestKeyHash(t *testing.T) {
-	var fixtures = map[interface{}]uintptr{
-		"123":                9076048966884696828,
-		int(1):               1754102016959854353,
-		int8(1):              1754102016959854353,
-		int16(-1):            6588593453755867710,
-		int32(math.MaxInt32): 15638166383137924496,
-		int64(math.MaxInt64): 4889285460913276945,
-		uint(0):              9257401834698437112,
-		uint8(123):           2662021623061770816,
-		uint16(1234):         1663804089773015140,
-		uint32(12345):        11667327197262824396,
-		uint64(123456):       9063688366117729139,
-		uintptr(1234567):     14770111569646361914,
+	type testFixture struct {
+		input  interface{}
+		output uintptr
+	}
+	var fixtures = []testFixture{
+		{input: "123", output: 9076048966884696828},
+		{input: []byte("123"), output: 9076048966884696828},
+		{input: int(1), output: 1754102016959854353},
+		{input: int8(1), output: 1754102016959854353},
+		{input: int16(-1), output: 6588593453755867710},
+		{input: int32(math.MaxInt32), output: 15638166383137924496},
+		{input: int64(math.MaxInt64), output: 4889285460913276945},
+		{input: uint(0), output: 9257401834698437112},
+		{input: uint8(123), output: 2662021623061770816},
+		{input: uint16(1234), output: 1663804089773015140},
+		{input: uint32(12345), output: 11667327197262824396},
+		{input: uint64(123456), output: 9063688366117729139},
+		{input: uintptr(1234567), output: 14770111569646361914},
 	}
 
-	for input, result := range fixtures {
-		output := getKeyHash(input)
-		if output != result {
-			t.Errorf("Key hash of %v and type %v should have been %d but was %d", input, reflect.TypeOf(input), result, output)
+	for _, f := range fixtures {
+		output := getKeyHash(f.input)
+		if output != f.output {
+			t.Errorf("Key hash of %v and type %v should have been %d but was %d", f.input, reflect.TypeOf(f.input), f.output, output)
 		}
 	}
 }
