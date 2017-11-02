@@ -53,6 +53,8 @@ func getKeyHash(key interface{}) uintptr {
 		}
 		buf := *(*[]byte)(unsafe.Pointer(&bh))
 		return uintptr(siphash.Hash(sipHashKey1, sipHashKey2, buf))
+	case []byte:
+		return uintptr(siphash.Hash(sipHashKey1, sipHashKey2, x))
 	case int:
 		num = uintptr(x)
 	case int8:
