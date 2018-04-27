@@ -8,17 +8,17 @@ import (
 // List is a sorted doubly linked list.
 type List struct {
 	count uintptr
-	root  *ListElement
+	head  *ListElement
 }
 
 // NewList returns an initialized list.
 func NewList() *List {
-	return &List{root: &ListElement{}}
+	return &List{head: &ListElement{}}
 }
 
 // Len returns the number of elements within the list.
 func (l *List) Len() int {
-	if l == nil {
+	if l == nil { // not initialized yet?
 		return 0
 	}
 
@@ -27,7 +27,7 @@ func (l *List) Len() int {
 
 // First returns the first item of the list.
 func (l *List) First() *ListElement {
-	return l.root.Next()
+	return l.head.Next()
 }
 
 // Add adds an item to the list and returns false if an item for the hash existed.
@@ -78,10 +78,10 @@ func (l *List) Cas(element *ListElement, oldValue unsafe.Pointer, searchStart *L
 }
 
 func (l *List) search(searchStart *ListElement, item *ListElement) (left *ListElement, found *ListElement, right *ListElement) {
-	if searchStart == nil { // start search at root?
-		left = l.root
+	if searchStart == nil { // start search at head?
+		left = l.head
 		found = left.Next()
-		if found == nil { // no items beside root?
+		if found == nil { // no items beside head?
 			return nil, nil, nil
 		}
 	} else {
@@ -107,8 +107,8 @@ func (l *List) search(searchStart *ListElement, item *ListElement) (left *ListEl
 }
 
 func (l *List) insertAt(element *ListElement, left *ListElement, right *ListElement) bool {
-	if left == nil { // insert at root
-		if !atomic.CompareAndSwapPointer(&l.root.nextElement, unsafe.Pointer(nil), unsafe.Pointer(element)) {
+	if left == nil { // insert at head
+		if !atomic.CompareAndSwapPointer(&l.head.nextElement, unsafe.Pointer(nil), unsafe.Pointer(element)) {
 			return false // item was modified concurrently
 		}
 	} else {

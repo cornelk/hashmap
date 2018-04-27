@@ -9,7 +9,7 @@ func TestListNew(t *testing.T) {
 		t.Error("First item of list should be nil.")
 	}
 
-	n = l.root.Next()
+	n = l.head.Next()
 	if n != nil {
 		t.Error("Next element of empty list should be nil.")
 	}

@@ -8,8 +8,8 @@ import (
 // ListElement is an element of a list.
 type ListElement struct {
 	keyHash         uintptr
-	previousElement unsafe.Pointer
-	nextElement     unsafe.Pointer
+	previousElement unsafe.Pointer // is nil for the first item in list
+	nextElement     unsafe.Pointer // is nil for the last item in list
 	key             interface{}
 	value           unsafe.Pointer
 }
