@@ -120,15 +120,27 @@ func (l *List) insertAt(element *ListElement, left *ListElement, right *ListElem
 	return true
 }
 
-// Delete marks the list element as deleted.
+// Delete deletes an element from the list.
 func (l *List) Delete(element *ListElement) {
+	if !atomic.CompareAndSwapUintptr(&element.deleted, uintptr(0), uintptr(1)) {
+		return // concurrent delete of the item in progress
+	}
+
 	for {
 		left := element.Previous()
 		right := element.Next()
-		if left != nil {
+
+		if left == nil { // element is first item in list?
+			if !atomic.CompareAndSwapPointer(&l.head.nextElement, unsafe.Pointer(element), unsafe.Pointer(right)) {
+				continue // now head item was inserted concurrently
+			}
+		} else {
 			if !atomic.CompareAndSwapPointer(&left.nextElement, unsafe.Pointer(element), unsafe.Pointer(right)) {
 				continue // item was modified concurrently
 			}
+		}
+		if right != nil {
+			atomic.CompareAndSwapPointer(&right.previousElement, unsafe.Pointer(element), unsafe.Pointer(left))
 		}
 		break
 	}

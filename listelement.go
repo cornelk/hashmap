@@ -12,6 +12,7 @@ type ListElement struct {
 	nextElement     unsafe.Pointer // is nil for the last item in list
 	key             interface{}
 	value           unsafe.Pointer
+	deleted         uintptr // marks the item as deleting or deleted
 }
 
 // Value returns the value of the list item.

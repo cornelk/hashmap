@@ -215,6 +215,10 @@ func TestDelete(t *testing.T) {
 		t.Error("map should be empty.")
 	}
 
+	for item := range m.Iter() {
+		t.Errorf("map should be empty but got %v in the iterator.", item)
+	}
+
 	val, ok := m.Get(1) // Get a missing element.
 	if ok {
 		t.Error("ok should be false when item is missing from map.")
