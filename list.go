@@ -27,15 +27,16 @@ func (l *List) Len() int {
 
 // First returns the first item of the list.
 func (l *List) First() *ListElement {
+	if l == nil { // not initialized yet?
+		return nil
+	}
+
 	return l.head.Next()
 }
 
 // Add adds an item to the list and returns false if an item for the hash existed.
+// searchStart = nil will start to search at the head item
 func (l *List) Add(element *ListElement, searchStart *ListElement) (existed bool, inserted bool) {
-	if searchStart == nil || element.keyHash < searchStart.keyHash { // key needs to be inserted on the left? {
-		searchStart = nil // start search at root
-	}
-
 	left, found, right := l.search(searchStart, element)
 	if found != nil { // existing item found
 		return true, false
@@ -46,10 +47,6 @@ func (l *List) Add(element *ListElement, searchStart *ListElement) (existed bool
 
 // AddOrUpdate adds or updates an item to the list.
 func (l *List) AddOrUpdate(element *ListElement, searchStart *ListElement) bool {
-	if searchStart == nil || element.keyHash < searchStart.keyHash { // key needs to be inserted on the left? {
-		searchStart = nil // start search at root
-	}
-
 	left, found, right := l.search(searchStart, element)
 	if found != nil { // existing item found
 		found.SetValue(element.value) // update the value
@@ -61,10 +58,6 @@ func (l *List) AddOrUpdate(element *ListElement, searchStart *ListElement) bool 
 
 // Cas compares and swaps the value of an item in the list.
 func (l *List) Cas(element *ListElement, oldValue unsafe.Pointer, searchStart *ListElement) bool {
-	if searchStart == nil || element.keyHash < searchStart.keyHash { // key needs to be inserted on the left? {
-		searchStart = nil // start search at root
-	}
-
 	_, found, _ := l.search(searchStart, element)
 	if found == nil { // no existing item found
 		return false
@@ -78,6 +71,10 @@ func (l *List) Cas(element *ListElement, oldValue unsafe.Pointer, searchStart *L
 }
 
 func (l *List) search(searchStart *ListElement, item *ListElement) (left *ListElement, found *ListElement, right *ListElement) {
+	if searchStart != nil && item.keyHash < searchStart.keyHash { // key would remain left from item? {
+		searchStart = nil // start search at head
+	}
+
 	if searchStart == nil { // start search at head?
 		left = l.head
 		found = left.Next()
