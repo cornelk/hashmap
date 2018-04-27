@@ -20,7 +20,7 @@ func (m *HashMap) Get(key interface{}) (value unsafe.Pointer, ok bool) {
 		return nil, false
 	}
 	index := h >> data.keyshifts
-	ptr := (*unsafe.Pointer)(unsafe.Pointer(uintptr(data.data) + uintptr(index*intSizeBytes)))
+	ptr := (*unsafe.Pointer)(unsafe.Pointer(uintptr(data.data) + index*intSizeBytes))
 	element := (*ListElement)(atomic.LoadPointer(ptr))
 
 	for element != nil {
@@ -54,7 +54,7 @@ func (m *HashMap) GetUintKey(key uintptr) (value unsafe.Pointer, ok bool) {
 
 	// inline HashMap.indexElement()
 	index := h >> data.keyshifts
-	ptr := (*unsafe.Pointer)(unsafe.Pointer(uintptr(data.data) + uintptr(index*intSizeBytes)))
+	ptr := (*unsafe.Pointer)(unsafe.Pointer(uintptr(data.data) + index*intSizeBytes))
 	element := (*ListElement)(atomic.LoadPointer(ptr))
 
 	for element != nil {
@@ -89,7 +89,7 @@ func (m *HashMap) GetStringKey(key string) (value unsafe.Pointer, ok bool) {
 
 	// inline HashMap.indexElement()
 	index := h >> data.keyshifts
-	ptr := (*unsafe.Pointer)(unsafe.Pointer(uintptr(data.data) + uintptr(index*intSizeBytes)))
+	ptr := (*unsafe.Pointer)(unsafe.Pointer(uintptr(data.data) + index*intSizeBytes))
 	element := (*ListElement)(atomic.LoadPointer(ptr))
 
 	for element != nil {
@@ -114,7 +114,7 @@ func (m *HashMap) GetHashedKey(hashedKey uintptr) (value unsafe.Pointer, ok bool
 		return nil, false
 	}
 	index := hashedKey >> data.keyshifts
-	ptr := (*unsafe.Pointer)(unsafe.Pointer(uintptr(data.data) + uintptr(index*intSizeBytes)))
+	ptr := (*unsafe.Pointer)(unsafe.Pointer(uintptr(data.data) + index*intSizeBytes))
 	element := (*ListElement)(atomic.LoadPointer(ptr))
 
 	for element != nil {
@@ -146,7 +146,7 @@ func (m *HashMap) GetOrInsert(key interface{}, value unsafe.Pointer) (actual uns
 			data = (*hashMapData)(atomic.LoadPointer(&m.datamap))
 		}
 		index := h >> data.keyshifts
-		ptr := (*unsafe.Pointer)(unsafe.Pointer(uintptr(data.data) + uintptr(index*intSizeBytes)))
+		ptr := (*unsafe.Pointer)(unsafe.Pointer(uintptr(data.data) + index*intSizeBytes))
 		element := (*ListElement)(atomic.LoadPointer(ptr))
 
 		for element != nil {

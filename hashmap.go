@@ -91,7 +91,7 @@ func (m *HashMap) indexElement(hashedKey uintptr) (data *hashMapData, item *List
 		return nil, nil
 	}
 	index := hashedKey >> data.keyshifts
-	ptr := (*unsafe.Pointer)(unsafe.Pointer(uintptr(data.data) + uintptr(index*intSizeBytes)))
+	ptr := (*unsafe.Pointer)(unsafe.Pointer(uintptr(data.data) + index*intSizeBytes))
 	item = (*ListElement)(atomic.LoadPointer(ptr))
 	return data, item
 }
@@ -144,7 +144,7 @@ func (m *HashMap) deleteElement(element *ListElement) {
 	for {
 		data := m.mapData()
 		index := element.keyHash >> data.keyshifts
-		ptr := (*unsafe.Pointer)(unsafe.Pointer(uintptr(data.data) + uintptr(index*intSizeBytes)))
+		ptr := (*unsafe.Pointer)(unsafe.Pointer(uintptr(data.data) + index*intSizeBytes))
 
 		next := element.Next()
 		if next != nil && element.keyHash>>data.keyshifts != index {
@@ -261,7 +261,7 @@ func (m *HashMap) Cas(key interface{}, from, to unsafe.Pointer) bool {
 // adds an item to the index if needed and returns the new item counter if it changed, otherwise 0
 func (mapData *hashMapData) addItemToIndex(item *ListElement) uintptr {
 	index := item.keyHash >> mapData.keyshifts
-	ptr := (*unsafe.Pointer)(unsafe.Pointer(uintptr(mapData.data) + uintptr(index*intSizeBytes)))
+	ptr := (*unsafe.Pointer)(unsafe.Pointer(uintptr(mapData.data) + index*intSizeBytes))
 
 	for { // loop until the smallest key hash is in the index
 		element := (*ListElement)(atomic.LoadPointer(ptr)) // get the current item in the index

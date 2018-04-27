@@ -42,45 +42,49 @@ func log2(i uintptr) uintptr {
 
 // getKeyHash returns a hash for the key. Only string and number types are supported.
 func getKeyHash(key interface{}) uintptr {
-	var num uintptr
 	switch x := key.(type) {
 	case string:
-		sh := (*reflect.StringHeader)(unsafe.Pointer(&x))
-		bh := reflect.SliceHeader{
-			Data: sh.Data,
-			Len:  sh.Len,
-			Cap:  sh.Len,
-		}
-		buf := *(*[]byte)(unsafe.Pointer(&bh))
-		return uintptr(siphash.Hash(sipHashKey1, sipHashKey2, buf))
+		return getStringHash(x)
 	case []byte:
 		return uintptr(siphash.Hash(sipHashKey1, sipHashKey2, x))
 	case int:
-		num = uintptr(x)
+		return getUintptrHash(uintptr(x))
 	case int8:
-		num = uintptr(x)
+		return getUintptrHash(uintptr(x))
 	case int16:
-		num = uintptr(x)
+		return getUintptrHash(uintptr(x))
 	case int32:
-		num = uintptr(x)
+		return getUintptrHash(uintptr(x))
 	case int64:
-		num = uintptr(x)
+		return getUintptrHash(uintptr(x))
 	case uint:
-		num = uintptr(x)
+		return getUintptrHash(uintptr(x))
 	case uint8:
-		num = uintptr(x)
+		return getUintptrHash(uintptr(x))
 	case uint16:
-		num = uintptr(x)
+		return getUintptrHash(uintptr(x))
 	case uint32:
-		num = uintptr(x)
+		return getUintptrHash(uintptr(x))
 	case uint64:
-		num = uintptr(x)
+		return getUintptrHash(uintptr(x))
 	case uintptr:
-		num = x
-	default:
-		panic(fmt.Errorf("unsupported key type %T", key))
+		return getUintptrHash(x)
 	}
+	panic(fmt.Errorf("unsupported key type %T", key))
+}
 
+func getStringHash(s string) uintptr {
+	sh := (*reflect.StringHeader)(unsafe.Pointer(&s))
+	bh := reflect.SliceHeader{
+		Data: sh.Data,
+		Len:  sh.Len,
+		Cap:  sh.Len,
+	}
+	buf := *(*[]byte)(unsafe.Pointer(&bh))
+	return uintptr(siphash.Hash(sipHashKey1, sipHashKey2, buf))
+}
+
+func getUintptrHash(num uintptr) uintptr {
 	bh := reflect.SliceHeader{
 		Data: uintptr(unsafe.Pointer(&num)),
 		Len:  intSizeBytes,

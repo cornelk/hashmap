@@ -182,7 +182,7 @@ func BenchmarkReadGoMapUintUnsafe(b *testing.B) {
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
 			for i := uintptr(0); i < benchmarkItemCount; i++ {
-				j, _ := m[i]
+				j := m[i]
 				if j != i {
 					b.Fail()
 				}
@@ -198,7 +198,7 @@ func BenchmarkReadGoMapUintMutex(b *testing.B) {
 		for pb.Next() {
 			for i := uintptr(0); i < benchmarkItemCount; i++ {
 				l.RLock()
-				j, _ := m[i]
+				j := m[i]
 				l.RUnlock()
 				if j != i {
 					b.Fail()
@@ -224,7 +224,7 @@ func BenchmarkReadGoMapWithWritesUintMutex(b *testing.B) {
 		for pb.Next() {
 			for i := uintptr(0); i < benchmarkItemCount; i++ {
 				l.RLock()
-				j, _ := m[i]
+				j := m[i]
 				l.RUnlock()
 				if j != i {
 					b.Fail()
@@ -277,7 +277,7 @@ func BenchmarkReadGoMapStringUnsafe(b *testing.B) {
 		for pb.Next() {
 			for i := 0; i < benchmarkItemCount; i++ {
 				s := strconv.Itoa(i)
-				sVal, _ := m[s]
+				sVal := m[s]
 				if s != sVal {
 					b.Fail()
 				}
@@ -294,7 +294,7 @@ func BenchmarkReadGoMapStringMutex(b *testing.B) {
 			for i := 0; i < benchmarkItemCount; i++ {
 				s := strconv.Itoa(i)
 				l.RLock()
-				sVal, _ := m[s]
+				sVal := m[s]
 				l.RUnlock()
 				if s != sVal {
 					b.Fail()
