@@ -2,7 +2,6 @@ package hashmap
 
 import (
 	"reflect"
-	"sync/atomic"
 	"unsafe"
 
 	"github.com/dchest/siphash"
@@ -13,16 +12,12 @@ import (
 // Please consider using GetUintKey or GetStringKey instead.
 func (m *HashMap) Get(key interface{}) (value unsafe.Pointer, ok bool) {
 	h := getKeyHash(key)
-
-	// inline HashMap.indexElement()
-	data := (*hashMapData)(atomic.LoadPointer(&m.datamap))
+	data, element := m.indexElement(h)
 	if data == nil {
 		return nil, false
 	}
-	index := h >> data.keyshifts
-	ptr := (*unsafe.Pointer)(unsafe.Pointer(uintptr(data.data) + index*intSizeBytes))
-	element := (*ListElement)(atomic.LoadPointer(ptr))
 
+	// inline HashMap.searchItem()
 	for element != nil {
 		if element.keyHash == h && element.key == key {
 			return element.Value(), true
@@ -32,18 +27,14 @@ func (m *HashMap) Get(key interface{}) (value unsafe.Pointer, ok bool) {
 			return nil, false
 		}
 
-		element = (*ListElement)(atomic.LoadPointer(&element.nextElement)) // inline ListElement.Next()
+		element = element.Next()
 	}
 	return nil, false
 }
 
 // GetUintKey retrieves an element from the map under given integer key.
 func (m *HashMap) GetUintKey(key uintptr) (value unsafe.Pointer, ok bool) {
-	data := (*hashMapData)(atomic.LoadPointer(&m.datamap))
-	if data == nil {
-		return nil, false
-	}
-
+	// inline getUintptrHash()
 	bh := reflect.SliceHeader{
 		Data: uintptr(unsafe.Pointer(&key)),
 		Len:  intSizeBytes,
@@ -52,11 +43,12 @@ func (m *HashMap) GetUintKey(key uintptr) (value unsafe.Pointer, ok bool) {
 	buf := *(*[]byte)(unsafe.Pointer(&bh))
 	h := uintptr(siphash.Hash(sipHashKey1, sipHashKey2, buf))
 
-	// inline HashMap.indexElement()
-	index := h >> data.keyshifts
-	ptr := (*unsafe.Pointer)(unsafe.Pointer(uintptr(data.data) + index*intSizeBytes))
-	element := (*ListElement)(atomic.LoadPointer(ptr))
+	data, element := m.indexElement(h)
+	if data == nil {
+		return nil, false
+	}
 
+	// inline HashMap.searchItem()
 	for element != nil {
 		if element.keyHash == h && element.key == key {
 			return element.Value(), true
@@ -66,18 +58,14 @@ func (m *HashMap) GetUintKey(key uintptr) (value unsafe.Pointer, ok bool) {
 			return nil, false
 		}
 
-		element = (*ListElement)(atomic.LoadPointer(&element.nextElement)) // inline ListElement.Next()
+		element = element.Next()
 	}
 	return nil, false
 }
 
 // GetStringKey retrieves an element from the map under given string key.
 func (m *HashMap) GetStringKey(key string) (value unsafe.Pointer, ok bool) {
-	data := (*hashMapData)(atomic.LoadPointer(&m.datamap))
-	if data == nil {
-		return nil, false
-	}
-
+	// inline getStringHash()
 	sh := (*reflect.StringHeader)(unsafe.Pointer(&key))
 	bh := reflect.SliceHeader{
 		Data: sh.Data,
@@ -87,11 +75,12 @@ func (m *HashMap) GetStringKey(key string) (value unsafe.Pointer, ok bool) {
 	buf := *(*[]byte)(unsafe.Pointer(&bh))
 	h := uintptr(siphash.Hash(sipHashKey1, sipHashKey2, buf))
 
-	// inline HashMap.indexElement()
-	index := h >> data.keyshifts
-	ptr := (*unsafe.Pointer)(unsafe.Pointer(uintptr(data.data) + index*intSizeBytes))
-	element := (*ListElement)(atomic.LoadPointer(ptr))
+	data, element := m.indexElement(h)
+	if data == nil {
+		return nil, false
+	}
 
+	// inline HashMap.searchItem()
 	for element != nil {
 		if element.keyHash == h && element.key == key {
 			return element.Value(), true
@@ -101,22 +90,19 @@ func (m *HashMap) GetStringKey(key string) (value unsafe.Pointer, ok bool) {
 			return nil, false
 		}
 
-		element = (*ListElement)(atomic.LoadPointer(&element.nextElement)) // inline ListElement.Next()
+		element = element.Next()
 	}
 	return nil, false
 }
 
 // GetHashedKey retrieves an element from the map under given hashed key.
 func (m *HashMap) GetHashedKey(hashedKey uintptr) (value unsafe.Pointer, ok bool) {
-	// inline HashMap.indexElement()
-	data := (*hashMapData)(atomic.LoadPointer(&m.datamap))
+	data, element := m.indexElement(hashedKey)
 	if data == nil {
 		return nil, false
 	}
-	index := hashedKey >> data.keyshifts
-	ptr := (*unsafe.Pointer)(unsafe.Pointer(uintptr(data.data) + index*intSizeBytes))
-	element := (*ListElement)(atomic.LoadPointer(ptr))
 
+	// inline HashMap.searchItem()
 	for element != nil {
 		if element.keyHash == hashedKey {
 			return element.Value(), true
@@ -126,7 +112,7 @@ func (m *HashMap) GetHashedKey(hashedKey uintptr) (value unsafe.Pointer, ok bool
 			return nil, false
 		}
 
-		element = (*ListElement)(atomic.LoadPointer(&element.nextElement)) // inline ListElement.Next()
+		element = element.Next()
 	}
 	return nil, false
 }
@@ -139,15 +125,11 @@ func (m *HashMap) GetOrInsert(key interface{}, value unsafe.Pointer) (actual uns
 	var newelement *ListElement
 
 	for {
-		// inline HashMap.indexElement()
-		data := (*hashMapData)(atomic.LoadPointer(&m.datamap))
+		data, element := m.indexElement(h)
 		if data == nil {
 			m.allocate(DefaultSize)
-			data = (*hashMapData)(atomic.LoadPointer(&m.datamap))
+			continue
 		}
-		index := h >> data.keyshifts
-		ptr := (*unsafe.Pointer)(unsafe.Pointer(uintptr(data.data) + index*intSizeBytes))
-		element := (*ListElement)(atomic.LoadPointer(ptr))
 
 		for element != nil {
 			if element.keyHash == h && element.key == key {
@@ -159,7 +141,7 @@ func (m *HashMap) GetOrInsert(key interface{}, value unsafe.Pointer) (actual uns
 				break
 			}
 
-			element = (*ListElement)(atomic.LoadPointer(&element.nextElement)) // inline ListElement.Next()
+			element = element.Next()
 		}
 
 		if newelement == nil { // allocate only once

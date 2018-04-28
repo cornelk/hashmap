@@ -96,6 +96,21 @@ func (m *HashMap) indexElement(hashedKey uintptr) (data *hashMapData, item *List
 	return data, item
 }
 
+func (m *HashMap) searchItem(item *ListElement, key interface{}, keyHash uintptr) (value unsafe.Pointer, ok bool) {
+	for item != nil {
+		if item.keyHash == keyHash && item.key == key {
+			return item.Value(), true
+		}
+
+		if item.keyHash > keyHash {
+			return nil, false
+		}
+
+		item = item.Next()
+	}
+	return nil, false
+}
+
 // Del deletes the key from the map.
 func (m *HashMap) Del(key interface{}) {
 	list := m.list()
