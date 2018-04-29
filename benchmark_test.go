@@ -4,7 +4,6 @@ import (
 	"strconv"
 	"sync"
 	"testing"
-	"unsafe"
 
 	"golang.org/x/sync/syncmap"
 )
@@ -14,8 +13,7 @@ const benchmarkItemCount = 1 << 10 // 1024
 func setupHashMap(b *testing.B) *HashMap {
 	m := &HashMap{}
 	for i := uintptr(0); i < benchmarkItemCount; i++ {
-		j := uintptr(i)
-		m.Set(i, unsafe.Pointer(&j))
+		m.Set(i, i)
 	}
 
 	b.ResetTimer()
@@ -26,7 +24,7 @@ func setupHashMapString(b *testing.B) *HashMap {
 	m := &HashMap{}
 	for i := 0; i < benchmarkItemCount; i++ {
 		s := strconv.Itoa(i)
-		m.Set(s, unsafe.Pointer(&s))
+		m.Set(s, s)
 	}
 
 	b.ResetTimer()
@@ -34,8 +32,7 @@ func setupHashMapString(b *testing.B) *HashMap {
 }
 
 func writeHashMap(m *HashMap, i uintptr) {
-	j := uintptr(i)
-	m.Set(i, unsafe.Pointer(&j))
+	m.Set(i, i)
 }
 
 func setupHashMapHashedKey(b *testing.B) *HashMap {
@@ -43,8 +40,7 @@ func setupHashMapHashedKey(b *testing.B) *HashMap {
 	log := log2(uintptr(benchmarkItemCount))
 	for i := uintptr(0); i < benchmarkItemCount; i++ {
 		hash := i << (strconv.IntSize - log)
-		j := uintptr(i)
-		m.SetHashedKey(hash, unsafe.Pointer(&j))
+		m.SetHashedKey(hash, i)
 	}
 
 	b.ResetTimer()
@@ -98,7 +94,7 @@ func BenchmarkReadHashMapUint(b *testing.B) {
 		for pb.Next() {
 			for i := uintptr(0); i < benchmarkItemCount; i++ {
 				j, _ := m.GetUintKey(i)
-				if *(*uintptr)(j) != i {
+				if j != i {
 					b.Fail()
 				}
 			}
@@ -121,7 +117,7 @@ func BenchmarkReadHashMapWithWritesUint(b *testing.B) {
 		for pb.Next() {
 			for i := uintptr(0); i < benchmarkItemCount; i++ {
 				j, _ := m.GetUintKey(i)
-				if *(*uintptr)(j) != i {
+				if j != i {
 					b.Fail()
 				}
 			}
@@ -137,7 +133,7 @@ func BenchmarkReadHashMapString(b *testing.B) {
 			for i := 0; i < benchmarkItemCount; i++ {
 				s := strconv.Itoa(i)
 				sVal, _ := m.GetStringKey(s)
-				if *(*string)(sVal) != s {
+				if sVal != s {
 					b.Fail()
 				}
 			}
@@ -152,7 +148,7 @@ func BenchmarkReadHashMapInterface(b *testing.B) {
 		for pb.Next() {
 			for i := uintptr(0); i < benchmarkItemCount; i++ {
 				j, _ := m.Get(i)
-				if *(*uintptr)(j) != i {
+				if j != i {
 					b.Fail()
 				}
 			}
@@ -169,7 +165,7 @@ func BenchmarkReadHashMapHashedKey(b *testing.B) {
 			for i := uintptr(0); i < benchmarkItemCount; i++ {
 				hash := i << (strconv.IntSize - log)
 				j, _ := m.GetHashedKey(hash)
-				if *(*uintptr)(j) != i {
+				if j != i {
 					b.Fail()
 				}
 			}
@@ -309,8 +305,7 @@ func BenchmarkWriteHashMapUint(b *testing.B) {
 
 	for n := 0; n < b.N; n++ {
 		for i := uintptr(0); i < benchmarkItemCount; i++ {
-			j := uintptr(i)
-			m.Set(i, unsafe.Pointer(&j))
+			m.Set(i, i)
 		}
 	}
 }
@@ -322,8 +317,7 @@ func BenchmarkWriteHashMapHashedKey(b *testing.B) {
 	for n := 0; n < b.N; n++ {
 		for i := uintptr(0); i < benchmarkItemCount; i++ {
 			hash := i << (strconv.IntSize - log)
-			j := uintptr(i)
-			m.SetHashedKey(hash, unsafe.Pointer(&j))
+			m.SetHashedKey(hash, i)
 		}
 	}
 }
