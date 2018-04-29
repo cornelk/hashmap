@@ -3,9 +3,8 @@ package hashmap
 import (
 	"strconv"
 	"sync"
+	"sync/atomic"
 	"testing"
-
-	"golang.org/x/sync/syncmap"
 )
 
 const benchmarkItemCount = 1 << 10 // 1024
@@ -20,19 +19,17 @@ func setupHashMap(b *testing.B) *HashMap {
 	return m
 }
 
-func setupHashMapString(b *testing.B) *HashMap {
+func setupHashMapString(b *testing.B) (*HashMap, []string) {
 	m := &HashMap{}
+	keys := make([]string, benchmarkItemCount)
 	for i := 0; i < benchmarkItemCount; i++ {
 		s := strconv.Itoa(i)
 		m.Set(s, s)
+		keys[i] = s
 	}
 
 	b.ResetTimer()
-	return m
-}
-
-func writeHashMap(m *HashMap, i uintptr) {
-	m.Set(i, i)
+	return m, keys
 }
 
 func setupHashMapHashedKey(b *testing.B) *HashMap {
@@ -57,14 +54,8 @@ func setupGoMap(b *testing.B) map[uintptr]uintptr {
 	return m
 }
 
-func writeGoMap(m map[uintptr]uintptr, i uintptr, mtx *sync.RWMutex) {
-	mtx.Lock()
-	m[i] = i
-	mtx.Unlock()
-}
-
-func setupGoSyncMap(b *testing.B) *syncmap.Map {
-	m := &syncmap.Map{}
+func setupGoSyncMap(b *testing.B) *sync.Map {
+	m := &sync.Map{}
 	for i := uintptr(0); i < benchmarkItemCount; i++ {
 		m.Store(i, i)
 	}
@@ -73,18 +64,16 @@ func setupGoSyncMap(b *testing.B) *syncmap.Map {
 	return m
 }
 
-func writeGoSyncMap(m *syncmap.Map, i uintptr) {
-	m.Store(i, i)
-}
-
-func setupGoMapString(b *testing.B) map[string]string {
+func setupGoMapString(b *testing.B) (map[string]string, []string) {
 	m := make(map[string]string)
+	keys := make([]string, benchmarkItemCount)
 	for i := 0; i < benchmarkItemCount; i++ {
 		s := strconv.Itoa(i)
 		m[s] = s
+		keys[i] = s
 	}
 	b.ResetTimer()
-	return m
+	return m, keys
 }
 
 func BenchmarkReadHashMapUint(b *testing.B) {
@@ -104,21 +93,23 @@ func BenchmarkReadHashMapUint(b *testing.B) {
 
 func BenchmarkReadHashMapWithWritesUint(b *testing.B) {
 	m := setupHashMap(b)
-
-	go func(bn int) {
-		for n := 0; n < bn; n++ {
-			for i := uintptr(0); i < benchmarkItemCount; i++ {
-				writeHashMap(m, i)
-			}
-		}
-	}(b.N)
+	var writer uintptr
 
 	b.RunParallel(func(pb *testing.PB) {
-		for pb.Next() {
-			for i := uintptr(0); i < benchmarkItemCount; i++ {
-				j, _ := m.GetUintKey(i)
-				if j != i {
-					b.Fail()
+		// use 1 thread as writer
+		if atomic.CompareAndSwapUintptr(&writer, 0, 1) {
+			for pb.Next() {
+				for i := uintptr(0); i < benchmarkItemCount; i++ {
+					m.Set(i, i)
+				}
+			}
+		} else {
+			for pb.Next() {
+				for i := uintptr(0); i < benchmarkItemCount; i++ {
+					j, _ := m.GetUintKey(i)
+					if j != i {
+						b.Fail()
+					}
 				}
 			}
 		}
@@ -126,12 +117,12 @@ func BenchmarkReadHashMapWithWritesUint(b *testing.B) {
 }
 
 func BenchmarkReadHashMapString(b *testing.B) {
-	m := setupHashMapString(b)
+	m, keys := setupHashMapString(b)
 
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
 			for i := 0; i < benchmarkItemCount; i++ {
-				s := strconv.Itoa(i)
+				s := keys[i]
 				sVal, _ := m.GetStringKey(s)
 				if sVal != s {
 					b.Fail()
@@ -207,23 +198,27 @@ func BenchmarkReadGoMapUintMutex(b *testing.B) {
 func BenchmarkReadGoMapWithWritesUintMutex(b *testing.B) {
 	m := setupGoMap(b)
 	l := &sync.RWMutex{}
-
-	go func(bn int) {
-		for n := 0; n < bn; n++ {
-			for i := uintptr(0); i < benchmarkItemCount; i++ {
-				writeGoMap(m, i, l)
-			}
-		}
-	}(b.N)
+	var writer uintptr
 
 	b.RunParallel(func(pb *testing.PB) {
-		for pb.Next() {
-			for i := uintptr(0); i < benchmarkItemCount; i++ {
-				l.RLock()
-				j := m[i]
-				l.RUnlock()
-				if j != i {
-					b.Fail()
+		// use 1 thread as writer
+		if atomic.CompareAndSwapUintptr(&writer, 0, 1) {
+			for pb.Next() {
+				for i := uintptr(0); i < benchmarkItemCount; i++ {
+					l.Lock()
+					m[i] = i
+					l.Unlock()
+				}
+			}
+		} else {
+			for pb.Next() {
+				for i := uintptr(0); i < benchmarkItemCount; i++ {
+					l.RLock()
+					j := m[i]
+					l.RUnlock()
+					if j != i {
+						b.Fail()
+					}
 				}
 			}
 		}
@@ -246,21 +241,23 @@ func BenchmarkReadGoSyncMapUint(b *testing.B) {
 
 func BenchmarkReadGoSyncMapWithWritesUint(b *testing.B) {
 	m := setupGoSyncMap(b)
-
-	go func(bn int) {
-		for n := 0; n < bn; n++ {
-			for i := uintptr(0); i < benchmarkItemCount; i++ {
-				writeGoSyncMap(m, i)
-			}
-		}
-	}(b.N)
+	var writer uintptr
 
 	b.RunParallel(func(pb *testing.PB) {
-		for pb.Next() {
-			for i := uintptr(0); i < benchmarkItemCount; i++ {
-				j, _ := m.Load(i)
-				if j != i {
-					b.Fail()
+		// use 1 thread as writer
+		if atomic.CompareAndSwapUintptr(&writer, 0, 1) {
+			for pb.Next() {
+				for i := uintptr(0); i < benchmarkItemCount; i++ {
+					m.Store(i, i)
+				}
+			}
+		} else {
+			for pb.Next() {
+				for i := uintptr(0); i < benchmarkItemCount; i++ {
+					j, _ := m.Load(i)
+					if j != i {
+						b.Fail()
+					}
 				}
 			}
 		}
@@ -268,11 +265,11 @@ func BenchmarkReadGoSyncMapWithWritesUint(b *testing.B) {
 }
 
 func BenchmarkReadGoMapStringUnsafe(b *testing.B) {
-	m := setupGoMapString(b)
+	m, keys := setupGoMapString(b)
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
 			for i := 0; i < benchmarkItemCount; i++ {
-				s := strconv.Itoa(i)
+				s := keys[i]
 				sVal := m[s]
 				if s != sVal {
 					b.Fail()
@@ -283,12 +280,12 @@ func BenchmarkReadGoMapStringUnsafe(b *testing.B) {
 }
 
 func BenchmarkReadGoMapStringMutex(b *testing.B) {
-	m := setupGoMapString(b)
+	m, keys := setupGoMapString(b)
 	l := &sync.RWMutex{}
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
 			for i := 0; i < benchmarkItemCount; i++ {
-				s := strconv.Itoa(i)
+				s := keys[i]
 				l.RLock()
 				sVal := m[s]
 				l.RUnlock()
@@ -336,7 +333,7 @@ func BenchmarkWriteGoMapMutexUint(b *testing.B) {
 }
 
 func BenchmarkWriteGoSyncMapUint(b *testing.B) {
-	m := &syncmap.Map{}
+	m := &sync.Map{}
 
 	for n := 0; n < b.N; n++ {
 		for i := uintptr(0); i < benchmarkItemCount; i++ {
