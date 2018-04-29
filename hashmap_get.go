@@ -10,7 +10,7 @@ import (
 // Get retrieves an element from the map under given hash key.
 // Using interface{} adds a performance penalty.
 // Please consider using GetUintKey or GetStringKey instead.
-func (m *HashMap) Get(key interface{}) (value unsafe.Pointer, ok bool) {
+func (m *HashMap) Get(key interface{}) (value interface{}, ok bool) {
 	h := getKeyHash(key)
 	data, element := m.indexElement(h)
 	if data == nil {
@@ -33,7 +33,7 @@ func (m *HashMap) Get(key interface{}) (value unsafe.Pointer, ok bool) {
 }
 
 // GetUintKey retrieves an element from the map under given integer key.
-func (m *HashMap) GetUintKey(key uintptr) (value unsafe.Pointer, ok bool) {
+func (m *HashMap) GetUintKey(key uintptr) (value interface{}, ok bool) {
 	// inline getUintptrHash()
 	bh := reflect.SliceHeader{
 		Data: uintptr(unsafe.Pointer(&key)),
@@ -64,7 +64,7 @@ func (m *HashMap) GetUintKey(key uintptr) (value unsafe.Pointer, ok bool) {
 }
 
 // GetStringKey retrieves an element from the map under given string key.
-func (m *HashMap) GetStringKey(key string) (value unsafe.Pointer, ok bool) {
+func (m *HashMap) GetStringKey(key string) (value interface{}, ok bool) {
 	// inline getStringHash()
 	sh := (*reflect.StringHeader)(unsafe.Pointer(&key))
 	bh := reflect.SliceHeader{
@@ -96,7 +96,7 @@ func (m *HashMap) GetStringKey(key string) (value unsafe.Pointer, ok bool) {
 }
 
 // GetHashedKey retrieves an element from the map under given hashed key.
-func (m *HashMap) GetHashedKey(hashedKey uintptr) (value unsafe.Pointer, ok bool) {
+func (m *HashMap) GetHashedKey(hashedKey uintptr) (value interface{}, ok bool) {
 	data, element := m.indexElement(hashedKey)
 	if data == nil {
 		return nil, false
@@ -120,7 +120,7 @@ func (m *HashMap) GetHashedKey(hashedKey uintptr) (value unsafe.Pointer, ok bool
 // GetOrInsert returns the existing value for the key if present.
 // Otherwise, it stores and returns the given value.
 // The loaded result is true if the value was loaded, false if stored.
-func (m *HashMap) GetOrInsert(key interface{}, value unsafe.Pointer) (actual unsafe.Pointer, loaded bool) {
+func (m *HashMap) GetOrInsert(key interface{}, value interface{}) (actual interface{}, loaded bool) {
 	h := getKeyHash(key)
 	var newelement *ListElement
 
@@ -148,7 +148,7 @@ func (m *HashMap) GetOrInsert(key interface{}, value unsafe.Pointer) (actual uns
 			newelement = &ListElement{
 				key:     key,
 				keyHash: h,
-				value:   value,
+				value:   unsafe.Pointer(&value),
 			}
 		}
 

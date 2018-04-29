@@ -33,7 +33,7 @@ type (
 	// KeyValue represents a key/value that is returned by the iterator.
 	KeyValue struct {
 		Key   interface{}
-		Value unsafe.Pointer
+		Value interface{}
 	}
 )
 
@@ -96,7 +96,8 @@ func (m *HashMap) indexElement(hashedKey uintptr) (data *hashMapData, item *List
 	return data, item
 }
 
-func (m *HashMap) searchItem(item *ListElement, key interface{}, keyHash uintptr) (value unsafe.Pointer, ok bool) {
+/* The Golang 1.10.1 compiler dons not inline this function well
+func (m *HashMap) searchItem(item *ListElement, key interface{}, keyHash uintptr) (value interface{}, ok bool) {
 	for item != nil {
 		if item.keyHash == keyHash && item.key == key {
 			return item.Value(), true
@@ -110,6 +111,7 @@ func (m *HashMap) searchItem(item *ListElement, key interface{}, keyHash uintptr
 	}
 	return nil, false
 }
+*/
 
 // Del deletes the key from the map.
 func (m *HashMap) Del(key interface{}) {
@@ -177,24 +179,24 @@ func (m *HashMap) deleteElement(element *ListElement) {
 // Insert sets the value under the specified key to the map if it does not exist yet.
 // If a resizing operation is happening concurrently while calling Set, the item might show up in the map only after the resize operation is finished.
 // Returns true if the item was inserted or false if it existed.
-func (m *HashMap) Insert(key interface{}, value unsafe.Pointer) bool {
+func (m *HashMap) Insert(key interface{}, value interface{}) bool {
 	h := getKeyHash(key)
 	element := &ListElement{
 		key:     key,
 		keyHash: h,
-		value:   value,
+		value:   unsafe.Pointer(&value),
 	}
 	return m.insertListElement(element, false)
 }
 
 // Set sets the value under the specified key to the map. An existing item for this key will be overwritten.
 // If a resizing operation is happening concurrently while calling Set, the item might show up in the map only after the resize operation is finished.
-func (m *HashMap) Set(key interface{}, value unsafe.Pointer) {
+func (m *HashMap) Set(key interface{}, value interface{}) {
 	h := getKeyHash(key)
 	element := &ListElement{
 		key:     key,
 		keyHash: h,
-		value:   value,
+		value:   unsafe.Pointer(&value),
 	}
 	m.insertListElement(element, true)
 }
@@ -203,11 +205,11 @@ func (m *HashMap) Set(key interface{}, value unsafe.Pointer) {
 // You can use this function if your keys are already hashes and you want to avoid another hashing of the key.
 // Do not use non hashes as keys for this function, the performance would decrease!
 // If a resizing operation is happening concurrently while calling Set, the item might show up in the map only after the resize operation is finished.
-func (m *HashMap) SetHashedKey(hashedKey uintptr, value unsafe.Pointer) {
+func (m *HashMap) SetHashedKey(hashedKey uintptr, value interface{}) {
 	element := &ListElement{
 		key:     hashedKey,
 		keyHash: hashedKey,
-		value:   value,
+		value:   unsafe.Pointer(&value),
 	}
 	m.insertListElement(element, true)
 }
@@ -246,13 +248,7 @@ func (m *HashMap) insertListElement(element *ListElement, update bool) bool {
 }
 
 // CasHashedKey performs a compare and swap operation sets the value under the specified hash key to the map. An existing item for this key will be overwritten.
-func (m *HashMap) CasHashedKey(hashedKey uintptr, from, to unsafe.Pointer) bool {
-	element := &ListElement{
-		key:     hashedKey,
-		keyHash: hashedKey,
-		value:   to,
-	}
-
+func (m *HashMap) CasHashedKey(hashedKey uintptr, from, to interface{}) bool {
 	data, existing := m.indexElement(hashedKey)
 	if data == nil {
 		return false
@@ -261,14 +257,17 @@ func (m *HashMap) CasHashedKey(hashedKey uintptr, from, to unsafe.Pointer) bool 
 	if list == nil {
 		return false
 	}
-	if !list.Cas(element, from, existing) {
-		return false
+
+	element := &ListElement{
+		key:     hashedKey,
+		keyHash: hashedKey,
+		value:   unsafe.Pointer(&to),
 	}
-	return true
+	return list.Cas(element, from, existing)
 }
 
 // Cas performs a compare and swap operation sets the value under the specified hash key to the map. An existing item for this key will be overwritten.
-func (m *HashMap) Cas(key interface{}, from, to unsafe.Pointer) bool {
+func (m *HashMap) Cas(key, from, to interface{}) bool {
 	h := getKeyHash(key)
 	return m.CasHashedKey(h, from, to)
 }

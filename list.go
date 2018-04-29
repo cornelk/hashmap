@@ -49,7 +49,7 @@ func (l *List) Add(element *ListElement, searchStart *ListElement) (existed bool
 func (l *List) AddOrUpdate(element *ListElement, searchStart *ListElement) bool {
 	left, found, right := l.search(searchStart, element)
 	if found != nil { // existing item found
-		found.SetValue(element.value) // update the value
+		found.setValue(element.value) // update the value
 		return true
 	}
 
@@ -57,13 +57,13 @@ func (l *List) AddOrUpdate(element *ListElement, searchStart *ListElement) bool 
 }
 
 // Cas compares and swaps the value of an item in the list.
-func (l *List) Cas(element *ListElement, oldValue unsafe.Pointer, searchStart *ListElement) bool {
+func (l *List) Cas(element *ListElement, oldValue interface{}, searchStart *ListElement) bool {
 	_, found, _ := l.search(searchStart, element)
 	if found == nil { // no existing item found
 		return false
 	}
 
-	if found.CasValue(oldValue, element.value) {
+	if found.casValue(oldValue, element.value) {
 		atomic.AddUintptr(&l.count, 1)
 		return true
 	}
