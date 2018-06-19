@@ -5,7 +5,7 @@ go:
   - 1.10.x
 
 script:
-  - go test -coverprofile=coverage.txt -covermode=atomic
+  - go test -race -coverprofile=coverage.txt -covermode=atomic
 
 after_success:
   - bash <(curl -s https://codecov.io/bash)
