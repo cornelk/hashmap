@@ -25,6 +25,15 @@ func (l *List) Len() int {
 	return int(atomic.LoadUintptr(&l.count))
 }
 
+// First returns the head item of the list.
+func (l *List) Head() *ListElement {
+	if l == nil { // not initialized yet?
+		return nil
+	}
+
+	return l.head
+}
+
 // First returns the first item of the list.
 func (l *List) First() *ListElement {
 	if l == nil { // not initialized yet?
@@ -91,6 +100,9 @@ func (l *List) search(searchStart *ListElement, item *ListElement) (left *ListEl
 		}
 
 		if item.keyHash < found.keyHash { // new item needs to be inserted before the found value
+			if l.head == left {
+				return nil, nil, found
+			}
 			return left, nil, found
 		}
 
@@ -104,15 +116,35 @@ func (l *List) search(searchStart *ListElement, item *ListElement) (left *ListEl
 }
 
 func (l *List) insertAt(element *ListElement, left *ListElement, right *ListElement) bool {
-	if left == nil { // insert at head
-		if !atomic.CompareAndSwapPointer(&l.head.nextElement, unsafe.Pointer(nil), unsafe.Pointer(element)) {
+	if left == nil {
+		// insert at head, head-->next = element
+		if !atomic.CompareAndSwapPointer(&l.head.nextElement, unsafe.Pointer(right), unsafe.Pointer(element)) {
 			return false // item was modified concurrently
+		}
+
+		//element->previous = head
+		element.previousElement = unsafe.Pointer(l.head)
+		//element->next = right
+		element.nextElement = unsafe.Pointer(right)
+
+		//right->previous = element
+		if right != nil {
+			if !atomic.CompareAndSwapPointer(&right.previousElement, unsafe.Pointer(l.head), unsafe.Pointer(element)) {
+				return false // item was modified concurrently
+			}
 		}
 	} else {
 		element.previousElement = unsafe.Pointer(left)
 		element.nextElement = unsafe.Pointer(right)
+
 		if !atomic.CompareAndSwapPointer(&left.nextElement, unsafe.Pointer(right), unsafe.Pointer(element)) {
 			return false // item was modified concurrently
+		}
+
+		if right != nil {
+			if !atomic.CompareAndSwapPointer(&right.previousElement, unsafe.Pointer(left), unsafe.Pointer(element)) {
+				return false // item was modified concurrently
+			}
 		}
 	}
 
