@@ -1,6 +1,7 @@
 package hashmap
 
 import (
+	"bytes"
 	"reflect"
 	"unsafe"
 
@@ -19,8 +20,17 @@ func (m *HashMap) Get(key interface{}) (value interface{}, ok bool) {
 
 	// inline HashMap.searchItem()
 	for element != nil {
-		if element.keyHash == h && element.key == key {
-			return element.Value(), true
+		if element.keyHash == h {
+			switch key.(type) {
+			case []byte:
+				if bytes.Compare(element.key.([]byte), key.([]byte)) == 0 {
+					return element.Value(), true
+				}
+			default:
+				if element.key == key {
+					return element.Value(), true
+				}
+			}
 		}
 
 		if element.keyHash > h {

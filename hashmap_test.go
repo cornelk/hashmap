@@ -384,6 +384,22 @@ func TestExample(t *testing.T) {
 	}
 }
 
+func TestByteSlice(t *testing.T) {
+	m := &HashMap{}
+	k := []byte(`Well this is a fine mess`)
+	i := 123
+	m.Set(k, i)
+
+	j, ok := m.Get(k)
+	if !ok {
+		t.Fail()
+	}
+
+	if i != j {
+		t.Fail()
+	}
+}
+
 func TestHashMap_parallel(t *testing.T) {
 	max := 10
 	dur := 2 * time.Second
