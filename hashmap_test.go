@@ -191,39 +191,51 @@ func TestStringer(t *testing.T) {
 }
 
 func TestDelete(t *testing.T) {
-	m := &HashMap{}
-	m.Del(0)
-
-	elephant := &Animal{"elephant"}
-	monkey := &Animal{"monkey"}
-	m.Set(1, elephant)
-	m.Set(2, monkey)
-	m.Del(0)
-	m.Del(3)
-	if m.Len() != 2 {
-		t.Error("map should contain exactly two elements.")
+	tests := []struct {
+		name string
+		key  func(int) interface{}
+	}{
+		{name: "int", key: func(i int) interface{} { return i }},
+		{name: "string", key: func(i int) interface{} { return strconv.Itoa(i) }},
+		{name: "[]byte", key: func(i int) interface{} { return []byte(strconv.Itoa(i) + "bytes") }},
 	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			m := &HashMap{}
+			m.Del(tt.key(0))
 
-	m.Del(1)
-	m.Del(1)
-	m.Del(2)
-	if m.Len() != 0 {
-		t.Error("map should be empty.")
-	}
+			elephant := &Animal{"elephant"}
+			monkey := &Animal{"monkey"}
+			m.Set(tt.key(1), elephant)
+			m.Set(tt.key(2), monkey)
+			m.Del(tt.key(0))
+			m.Del(tt.key(3))
+			if m.Len() != 2 {
+				t.Error("map should contain exactly two elements.")
+			}
 
-	for item := range m.Iter() {
-		t.Errorf("map should be empty but got %v in the iterator.", item)
-	}
+			m.Del(tt.key(1))
+			m.Del(tt.key(1))
+			m.Del(tt.key(2))
+			if m.Len() != 0 {
+				t.Error("map should be empty.")
+			}
 
-	val, ok := m.Get(1) // Get a missing element.
-	if ok {
-		t.Error("ok should be false when item is missing from map.")
-	}
-	if val != nil {
-		t.Error("Missing values should return as nil.")
-	}
+			for item := range m.Iter() {
+				t.Errorf("map should be empty but got %v in the iterator.", item)
+			}
 
-	m.Set(1, elephant)
+			val, ok := m.Get(tt.key(1)) // Get a missing element.
+			if ok {
+				t.Error("ok should be false when item is missing from map.")
+			}
+			if val != nil {
+				t.Error("Missing values should return as nil.")
+			}
+
+			m.Set(tt.key(1), elephant)
+		})
+	}
 }
 
 func TestIterator(t *testing.T) {
