@@ -142,9 +142,18 @@ func (m *HashMap) GetOrInsert(key interface{}, value interface{}) (actual interf
 		}
 
 		for element != nil {
-			if element.keyHash == h && element.key == key {
-				actual = element.Value()
-				return actual, true
+			if element.keyHash == h {
+				switch key.(type) {
+				case []byte:
+					if bytes.Compare(element.key.([]byte), key.([]byte)) == 0 {
+						return element.Value(), true
+					}
+				default:
+					if element.key == key {
+						actual = element.Value()
+						return actual, true
+					}
+				}
 			}
 
 			if element.keyHash > h {

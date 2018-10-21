@@ -12,6 +12,13 @@ type Animal struct {
 	name string
 }
 
+func uKey(i int) interface{}      { return uintptr(i) }
+func iKey(i int) interface{}      { return i }
+func sKey(i int) interface{}      { return strconv.Itoa(i) }
+func bKey(i int) interface{}      { return []byte(strconv.Itoa(i) + "bytes") }
+func s2sKey(s string) interface{} { return s }
+func s2bKey(s string) interface{} { return []byte(s) }
+
 func TestMapCreation(t *testing.T) {
 	m := &HashMap{}
 	if m.Len() != 0 {
@@ -89,31 +96,42 @@ func TestSet(t *testing.T) {
 }
 
 func TestGet(t *testing.T) {
-	m := &HashMap{}
-	elephant := "elephant"
-
-	val, ok := m.Get("animal") // Get a missing element.
-	if ok {
-		t.Error("ok should be false when item is missing from map.")
+	tests := []struct {
+		name string
+		key  func(string) interface{}
+	}{
+		{name: "string", key: s2sKey},
+		{name: "[]byte", key: s2bKey},
 	}
-	if val != nil {
-		t.Error("Missing values should return as nil.")
-	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			m := &HashMap{}
+			elephant := "elephant"
 
-	m.Set("animal", elephant)
+			val, ok := m.Get(tt.key("animal")) // Get a missing element.
+			if ok {
+				t.Error("ok should be false when item is missing from map.")
+			}
+			if val != nil {
+				t.Error("Missing values should return as nil.")
+			}
 
-	_, ok = m.Get("human") // Get a missing element.
-	if ok {
-		t.Error("ok should be false when item is missing from map.")
-	}
+			m.Set(tt.key("animal"), elephant)
 
-	value, ok := m.Get("animal") // Retrieve inserted element.
-	if !ok {
-		t.Error("ok should be true for item stored within the map.")
-	}
+			_, ok = m.Get(tt.key("human")) // Get a missing element.
+			if ok {
+				t.Error("ok should be false when item is missing from map.")
+			}
 
-	if value != elephant {
-		t.Error("item was modified.")
+			value, ok := m.Get(tt.key("animal")) // Retrieve inserted element.
+			if !ok {
+				t.Error("ok should be true for item stored within the map.")
+			}
+
+			if value != elephant {
+				t.Error("item was modified.")
+			}
+		})
 	}
 }
 
@@ -359,25 +377,36 @@ func TestCompareAndSwap(t *testing.T) {
 
 // TestAPICounter shows how to use the hashmap to count REST server API calls
 func TestAPICounter(t *testing.T) {
-	m := &HashMap{}
-
-	for i := 0; i < 100; i++ {
-		s := fmt.Sprintf("/api%d/", i%4)
-
-		for {
-			counter := int64(0)
-			actual, _ := m.GetOrInsert(s, &counter)
-			c := actual.(*int64)
-			atomic.AddInt64(c, 1)
-			break
-		}
+	tests := []struct {
+		name string
+		key  func(string) interface{}
+	}{
+		{name: "string", key: s2sKey},
+		{name: "[]byte", key: s2bKey},
 	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			m := &HashMap{}
 
-	s := fmt.Sprintf("/api%d/", 0)
-	val, _ := m.GetStringKey(s)
-	c := val.(*int64)
-	if *c != 25 {
-		t.Error("wrong API call count.")
+			for i := 0; i < 100; i++ {
+				s := fmt.Sprintf("/api%d/", i%4)
+
+				for {
+					counter := int64(0)
+					actual, _ := m.GetOrInsert(tt.key(s), &counter)
+					c := actual.(*int64)
+					atomic.AddInt64(c, 1)
+					break
+				}
+			}
+
+			s := fmt.Sprintf("/api%d/", 0)
+			val, _ := m.Get(tt.key(s))
+			c := val.(*int64)
+			if *c != 25 {
+				t.Error("wrong API call count.")
+			}
+		})
 	}
 }
 
