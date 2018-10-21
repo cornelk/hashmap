@@ -174,6 +174,37 @@ func TestGet(t *testing.T) {
 	}
 }
 
+func TestGetUintKey(t *testing.T) {
+	m := &HashMap{}
+	elephant := "elephant"
+	key0 := uintptr(0)
+	key1 := uintptr(1)
+
+	val, ok := m.GetUintKey(key0) // Get a missing element.
+	if ok {
+		t.Error("ok should be false when item is missing from map.")
+	}
+	if val != nil {
+		t.Error("Missing values should return as nil.")
+	}
+
+	m.Set(key0, elephant)
+
+	_, ok = m.GetUintKey(key1) // Get a missing element.
+	if ok {
+		t.Error("ok should be false when item is missing from map.")
+	}
+
+	value, ok := m.GetUintKey(key0) // Retrieve inserted element.
+	if !ok {
+		t.Error("ok should be true for item stored within the map.")
+	}
+
+	if value != elephant {
+		t.Error("item was modified.")
+	}
+}
+
 func TestGrow(t *testing.T) {
 	m := &HashMap{}
 	m.Grow(uintptr(63))
