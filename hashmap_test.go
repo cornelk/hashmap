@@ -27,71 +27,110 @@ func TestMapCreation(t *testing.T) {
 }
 
 func TestOverwrite(t *testing.T) {
-	m := &HashMap{}
-
-	elephant := "elephant"
-	monkey := "monkey"
-
-	m.Set(1, elephant)
-	m.Set(1, monkey)
-
-	if m.Len() != 1 {
-		t.Errorf("map should contain exactly one element but has %v items.", m.Len())
+	tests := []struct {
+		name string
+		key  func(int) interface{}
+	}{
+		{name: "uintptr", key: uKey},
+		{name: "int", key: iKey},
+		{name: "string", key: sKey},
+		{name: "[]byte", key: bKey},
 	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			m := &HashMap{}
 
-	item, ok := m.Get(1) // Retrieve inserted element.
-	if !ok {
-		t.Error("ok should be true for item stored within the map.")
-	}
-	if item != monkey {
-		t.Error("wrong item returned.")
+			elephant := "elephant"
+			monkey := "monkey"
+
+			m.Set(tt.key(1), elephant)
+			m.Set(tt.key(1), monkey)
+
+			if m.Len() != 1 {
+				t.Errorf("map should contain exactly one element but has %v items.", m.Len())
+			}
+
+			item, ok := m.Get(tt.key(1)) // Retrieve inserted element.
+			if !ok {
+				t.Error("ok should be true for item stored within the map.")
+			}
+			if item != monkey {
+				t.Error("wrong item returned.")
+			}
+		})
 	}
 }
 
 func TestInsert(t *testing.T) {
-	m := &HashMap{}
-	_, ok := m.GetUintKey(0)
-	if ok {
-		t.Error("empty map should not return an item.")
+	tests := []struct {
+		name string
+		key  func(int) interface{}
+	}{
+		{name: "uintptr", key: uKey},
+		{name: "int", key: iKey},
+		{name: "string", key: sKey},
+		{name: "[]byte", key: bKey},
 	}
-	c := uintptr(16)
-	ok = m.Insert(uintptr(0), c)
-	if !ok {
-		t.Error("insert did not succeed.")
-	}
-	ok = m.Insert(uintptr(128), c)
-	if !ok {
-		t.Error("insert did not succeed.")
-	}
-	ok = m.Insert(uintptr(128), c)
-	if ok {
-		t.Error("insert on existing item did succeed.")
-	}
-	_, ok = m.GetUintKey(128)
-	if !ok {
-		t.Error("ok should be true for item stored within the map.")
-	}
-	_, ok = m.GetUintKey(127)
-	if ok {
-		t.Error("item for key should not exist.")
-	}
-	if m.Len() != 2 {
-		t.Errorf("map should contain exactly 2 elements but has %v items.", m.Len())
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			m := &HashMap{}
+			_, ok := m.Get(tt.key(0))
+			if ok {
+				t.Error("empty map should not return an item.")
+			}
+			c := uintptr(16)
+			ok = m.Insert(tt.key(0), c)
+			if !ok {
+				t.Error("insert did not succeed.")
+			}
+			ok = m.Insert(tt.key(128), c)
+			if !ok {
+				t.Error("insert did not succeed.")
+			}
+			ok = m.Insert(tt.key(128), c)
+			if ok {
+				t.Error("insert on existing item did succeed.")
+			}
+			_, ok = m.Get(tt.key(128))
+			if !ok {
+				t.Error("ok should be true for item stored within the map.")
+			}
+			_, ok = m.Get(tt.key(127))
+			if ok {
+				t.Error("item for key should not exist.")
+			}
+			if m.Len() != 2 {
+				t.Errorf("map should contain exactly 2 elements but has %v items.", m.Len())
+			}
+		})
 	}
 }
 
 func TestSet(t *testing.T) {
-	m := New(4)
-	elephant := "elephant"
-	monkey := "monkey"
+	tests := []struct {
+		name string
+		key  func(int) interface{}
+	}{
+		{name: "int", key: iKey},
+		{name: "string", key: sKey},
+		{name: "[]byte", key: bKey},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
 
-	m.Set(4, elephant)
-	m.Set(3, elephant)
-	m.Set(2, monkey)
-	m.Set(1, monkey)
+			m := New(4)
+			elephant := "elephant"
+			monkey := "monkey"
 
-	if m.Len() != 4 {
-		t.Error("map should contain exactly 4 elements.")
+			m.Set(tt.key(4), elephant)
+			m.Set(tt.key(3), elephant)
+			m.Set(tt.key(2), monkey)
+			m.Set(tt.key(1), monkey)
+
+			if m.Len() != 4 {
+				t.Error("map should contain exactly 4 elements.")
+			}
+		})
 	}
 }
 
@@ -184,27 +223,39 @@ func TestResize(t *testing.T) {
 }
 
 func TestStringer(t *testing.T) {
-	m := &HashMap{}
-	elephant := &Animal{"elephant"}
-	monkey := &Animal{"monkey"}
-
-	s := m.String()
-	if s != "[]" {
-		t.Error("empty map as string does not match.")
+	tests := []struct {
+		name string
+		key  func(int) interface{}
+	}{
+		{name: "int", key: iKey},
+		{name: "string", key: sKey},
+		{name: "[]byte", key: bKey},
 	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			m := &HashMap{}
+			elephant := &Animal{"elephant"}
+			monkey := &Animal{"monkey"}
 
-	m.Set(0, elephant)
-	s = m.String()
-	hashedKey0 := getKeyHash(0)
-	if s != fmt.Sprintf("[%v]", hashedKey0) {
-		t.Error("1 item map as string does not match:", s)
-	}
+			s := m.String()
+			if s != "[]" {
+				t.Error("empty map as string does not match.")
+			}
 
-	m.Set(1, monkey)
-	s = m.String()
-	hashedKey1 := getKeyHash(1)
-	if s != fmt.Sprintf("[%v,%v]", hashedKey1, hashedKey0) {
-		t.Error("2 item map as string does not match:", s)
+			m.Set(tt.key(0), elephant)
+			s = m.String()
+			hashedKey0 := getKeyHash(tt.key(0))
+			if s != fmt.Sprintf("[%v]", hashedKey0) {
+				t.Error("1 item map as string does not match:", s)
+			}
+
+			m.Set(tt.key(1), monkey)
+			s = m.String()
+			hashedKey1 := getKeyHash(tt.key(1))
+			if s != fmt.Sprintf("[%v,%v]", hashedKey1, hashedKey0) {
+				t.Error("2 item map as string does not match:", s)
+			}
+		})
 	}
 }
 
@@ -257,28 +308,41 @@ func TestDelete(t *testing.T) {
 }
 
 func TestIterator(t *testing.T) {
-	m := &HashMap{}
 
-	for item := range m.Iter() {
-		t.Errorf("Expected no object but got %v.", item)
+	tests := []struct {
+		name string
+		key  func(int) interface{}
+	}{
+		{name: "uintptr", key: iKey},
+		{name: "string", key: sKey},
+		{name: "[]byte", key: bKey},
 	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			m := &HashMap{}
 
-	itemCount := 16
-	for i := itemCount; i > 0; i-- {
-		m.Set(uintptr(i), &Animal{strconv.Itoa(i)})
-	}
+			for item := range m.Iter() {
+				t.Errorf("Expected no object but got %v.", item)
+			}
 
-	counter := 0
-	for item := range m.Iter() {
-		val := item.Value
-		if val == nil {
-			t.Error("Expecting an object.")
-		}
-		counter++
-	}
+			itemCount := 16
+			for i := itemCount; i > 0; i-- {
+				m.Set(tt.key(i), &Animal{strconv.Itoa(i)})
+			}
 
-	if counter != itemCount {
-		t.Error("Returned item count did not match.")
+			counter := 0
+			for item := range m.Iter() {
+				val := item.Value
+				if val == nil {
+					t.Error("Expecting an object.")
+				}
+				counter++
+			}
+
+			if counter != itemCount {
+				t.Error("Returned item count did not match.")
+			}
+		})
 	}
 }
 
@@ -347,31 +411,42 @@ func TestCompareAndSwapHashedKey(t *testing.T) {
 }
 
 func TestCompareAndSwap(t *testing.T) {
-	m := &HashMap{}
-	ok := m.CasHashedKey(uintptr(0), nil, nil)
-	if ok {
-		t.Error("empty map should not return an item.")
+	tests := []struct {
+		name string
+		key  interface{}
+	}{
+		{name: "string", key: "animal"},
+		{name: "[]byte", key: []byte(`animal`)},
 	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			m := &HashMap{}
+			ok := m.CasHashedKey(uintptr(0), nil, nil)
+			if ok {
+				t.Error("empty map should not return an item.")
+			}
 
-	elephant := &Animal{"elephant"}
-	monkey := &Animal{"monkey"}
+			elephant := &Animal{"elephant"}
+			monkey := &Animal{"monkey"}
 
-	m.Set("animal", elephant)
-	if m.Len() != 1 {
-		t.Error("map should contain exactly one element.")
-	}
-	if !m.Cas("animal", elephant, monkey) {
-		t.Error("Cas should success if expectation met")
-	}
-	if m.Cas("animal", elephant, monkey) {
-		t.Error("Cas should fail if expectation didn't meet")
-	}
-	item, ok := m.Get("animal")
-	if !ok {
-		t.Error("ok should be true for item stored within the map.")
-	}
-	if item != monkey {
-		t.Error("wrong item returned.")
+			m.Set(tt.key, elephant)
+			if m.Len() != 1 {
+				t.Error("map should contain exactly one element.")
+			}
+			if !m.Cas(tt.key, elephant, monkey) {
+				t.Error("Cas should success if expectation met")
+			}
+			if m.Cas(tt.key, elephant, monkey) {
+				t.Error("Cas should fail if expectation didn't meet")
+			}
+			item, ok := m.Get(tt.key)
+			if !ok {
+				t.Error("ok should be true for item stored within the map.")
+			}
+			if item != monkey {
+				t.Error("wrong item returned.")
+			}
+		})
 	}
 }
 
