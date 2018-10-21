@@ -176,32 +176,33 @@ func TestGet(t *testing.T) {
 
 func TestGetUintKey(t *testing.T) {
 	m := &HashMap{}
-	elephant := "elephant"
-	key0 := uintptr(0)
-	key1 := uintptr(1)
-
-	val, ok := m.GetUintKey(key0) // Get a missing element.
+	_, ok := m.GetUintKey(0)
 	if ok {
-		t.Error("ok should be false when item is missing from map.")
+		t.Error("empty map should not return an item.")
 	}
-	if val != nil {
-		t.Error("Missing values should return as nil.")
+	c := uintptr(16)
+	ok = m.Insert(uintptr(0), c)
+	if !ok {
+		t.Error("insert did not succeed.")
 	}
-
-	m.Set(key0, elephant)
-
-	_, ok = m.GetUintKey(key1) // Get a missing element.
+	ok = m.Insert(uintptr(128), c)
+	if !ok {
+		t.Error("insert did not succeed.")
+	}
+	ok = m.Insert(uintptr(128), c)
 	if ok {
-		t.Error("ok should be false when item is missing from map.")
+		t.Error("insert on existing item did succeed.")
 	}
-
-	value, ok := m.GetUintKey(key0) // Retrieve inserted element.
+	_, ok = m.GetUintKey(128)
 	if !ok {
 		t.Error("ok should be true for item stored within the map.")
 	}
-
-	if value != elephant {
-		t.Error("item was modified.")
+	_, ok = m.GetUintKey(127)
+	if ok {
+		t.Error("item for key should not exist.")
+	}
+	if m.Len() != 2 {
+		t.Errorf("map should contain exactly 2 elements but has %v items.", m.Len())
 	}
 }
 
