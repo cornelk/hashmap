@@ -117,15 +117,15 @@ func (l *List) search(searchStart *ListElement, item *ListElement) (left *ListEl
 
 func (l *List) insertAt(element *ListElement, left *ListElement, right *ListElement) bool {
 	if left == nil {
-		// insert at head, head-->next = element
-		if !atomic.CompareAndSwapPointer(&l.head.nextElement, unsafe.Pointer(right), unsafe.Pointer(element)) {
-			return false // item was modified concurrently
-		}
-
 		//element->previous = head
 		element.previousElement = unsafe.Pointer(l.head)
 		//element->next = right
 		element.nextElement = unsafe.Pointer(right)
+
+		// insert at head, head-->next = element
+		if !atomic.CompareAndSwapPointer(&l.head.nextElement, unsafe.Pointer(right), unsafe.Pointer(element)) {
+			return false // item was modified concurrently
+		}
 
 		//right->previous = element
 		if right != nil {

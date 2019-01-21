@@ -3,6 +3,7 @@ package hashmap
 import (
 	"fmt"
 	"strconv"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -634,4 +635,28 @@ func TestHashMap_parallel(t *testing.T) {
 		wait(t, doneGetOrInsert)
 		wait(t, doneDel)
 	})
+}
+
+func TestHashMap_SetConcurrent(t *testing.T) {
+	blocks := &HashMap{}
+
+	var wg sync.WaitGroup
+	for i := 0; i < 100; i++ {
+
+		wg.Add(1)
+		go func(blocks *HashMap, i int) {
+			defer wg.Done()
+
+			blocks.Set(strconv.Itoa(i), struct{}{})
+
+			wg.Add(1)
+			go func(blocks *HashMap, i int) {
+				defer wg.Done()
+
+				blocks.Get(strconv.Itoa(i))
+			}(blocks, i)
+		}(blocks, i)
+	}
+
+	wg.Wait()
 }
