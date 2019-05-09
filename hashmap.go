@@ -157,11 +157,24 @@ func (m *HashMap) DelHashedKey(hashedKey uintptr) {
 		return
 	}
 
-	_, element := m.indexElement(hashedKey)
+	// inline HashMap.searchItem()
+	var element *ListElement
+ElementLoop:
+	for _, element = m.indexElement(hashedKey); element != nil; element = element.Next() {
+		if element.keyHash == hashedKey {
+
+			break ElementLoop
+
+		}
+
+		if element.keyHash > hashedKey {
+			return
+		}
+	}
+
 	if element == nil {
 		return
 	}
-
 	m.deleteElement(element)
 	list.Delete(element)
 }
