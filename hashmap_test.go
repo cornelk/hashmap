@@ -431,8 +431,14 @@ func TestCompareAndSwapHashedKey(t *testing.T) {
 	if !m.CasHashedKey(1<<(strconv.IntSize-2), elephant, monkey) {
 		t.Error("Cas should success if expectation met")
 	}
+	if m.Len() != 1 {
+		t.Error("map should contain exactly one element.")
+	}
 	if m.CasHashedKey(1<<(strconv.IntSize-2), elephant, monkey) {
 		t.Error("Cas should fail if expectation didn't meet")
+	}
+	if m.Len() != 1 {
+		t.Error("map should contain exactly one element.")
 	}
 	item, ok := m.GetHashedKey(1 << (strconv.IntSize - 2))
 	if !ok {
