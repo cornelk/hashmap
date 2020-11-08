@@ -73,7 +73,6 @@ func (l *List) Cas(element *ListElement, oldValue interface{}, searchStart *List
 	}
 
 	if found.casValue(oldValue, element.value) {
-		atomic.AddUintptr(&l.count, 1)
 		return true
 	}
 	return false
