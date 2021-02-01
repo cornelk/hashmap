@@ -90,5 +90,5 @@ The benchmarks were run with Golang 1.10.1 on MacOS.
 
 * It optimizes the slice access by circumventing the Golang size check when reading from the slice.
   Once a slice is allocated, the size of it does not change.
-  The library limits the index into the slice, therefor the Golang size check is obsolete.
+  The library limits the index into the slice, therefore the Golang size check is obsolete.
   When the slice reaches a defined fill rate, a bigger slice is allocated and all keys are recalculated and transferred into the new slice.
