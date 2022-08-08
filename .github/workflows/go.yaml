@@ -27,8 +27,14 @@ jobs:
       - name: Check out code into the Go module directory
         uses: actions/checkout@v2
 
+      - name: Install linters
+        run: make install-linters
+
       - name: Get dependencies
         run: go mod download
 
       - name: Run tests
         run: make test
+
+      - name: Run linter
+        run: make lint
