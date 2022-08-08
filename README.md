@@ -1,4 +1,9 @@
-# hashmap [![Build Status](https://travis-ci.org/cornelk/hashmap.svg?branch=master)](https://travis-ci.org/cornelk/hashmap) [![GoDoc](https://godoc.org/github.com/cornelk/hashmap?status.svg)](https://godoc.org/github.com/cornelk/hashmap) [![Go Report Card](https://goreportcard.com/badge/cornelk/hashmap)](https://goreportcard.com/report/github.com/cornelk/hashmap) [![codecov](https://codecov.io/gh/cornelk/hashmap/branch/master/graph/badge.svg)](https://codecov.io/gh/cornelk/hashmap)
+# hashmap
+
+[![Build status](https://github.com/cornelk/hashmap/actions/workflows/go.yaml/badge.svg?branch=main)](https://github.com/cornelk/hashmap/actions)
+[![go.dev reference](https://img.shields.io/badge/go.dev-reference-007d9c?logo=go&logoColor=white&style=flat-square)](https://pkg.go.dev/github.com/cornelk/hashmap)
+[![Go Report Card](https://goreportcard.com/badge/github.com/cornelk/hashmap)](https://goreportcard.com/report/github.com/cornelk/hashmap)
+[![codecov](https://codecov.io/gh/cornelk/hashmap/branch/main/graph/badge.svg?token=NS5UY28V3A)](https://codecov.io/gh/cornelk/hashmap)
 
 ## Overview
 
@@ -63,7 +68,7 @@ BenchmarkWriteGoSyncMapUint-8             	   10000	    176903 ns/op
 
 The benchmarks were run with Golang 1.10.1 on MacOS.
 
-### Benefits over Golangs builtin map
+### Benefits over Golang's builtin map
 
 * Faster
 
@@ -73,7 +78,7 @@ The benchmarks were run with Golang 1.10.1 on MacOS.
 
 * Access functions for keys that are hashes and do not need to be hashed again
 
-### Benefits over [Golangs sync.Map](https://golang.org/pkg/sync/#Map)
+### Benefits over [Golang's sync.Map](https://golang.org/pkg/sync/#Map)
 
 * Faster
 
