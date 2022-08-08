@@ -9,9 +9,10 @@ benchmark: ## run benchmarks
 
 test: ## run tests
 	go test -race ./...
+	go test -tags customhash -race -run TestInsertCollision .
 
 test-coverage: ## run unit tests and create test coverage
-	go test ./... -coverprofile .testCoverage -covermode=atomic -coverpkg=./...
+	go test -tags customhash ./... -coverprofile .testCoverage -covermode=atomic -coverpkg=./...
 
 test-coverage-web: test-coverage ## run unit tests and show test coverage in browser
 	go tool cover -func .testCoverage | grep total | awk '{print "Total coverage: "$$3}'
