@@ -1,5 +1,5 @@
 module github.com/cornelk/hashmap
 
-go 1.12
+go 1.18
 
-require github.com/dchest/siphash v1.1.0
+require github.com/cespare/xxhash v1.1.0

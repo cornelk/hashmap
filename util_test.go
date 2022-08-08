@@ -30,19 +30,19 @@ func TestKeyHash(t *testing.T) {
 		output uintptr
 	}
 	var fixtures = []testFixture{
-		{input: "123", output: 9076048966884696828},
-		{input: []byte("123"), output: 9076048966884696828},
-		{input: int(1), output: 1754102016959854353},
-		{input: int8(1), output: 1754102016959854353},
-		{input: int16(-1), output: 6588593453755867710},
-		{input: int32(math.MaxInt32), output: 15638166383137924496},
-		{input: int64(math.MaxInt64), output: 4889285460913276945},
-		{input: uint(0), output: 9257401834698437112},
-		{input: uint8(123), output: 2662021623061770816},
-		{input: uint16(1234), output: 1663804089773015140},
-		{input: uint32(12345), output: 11667327197262824396},
-		{input: uint64(123456), output: 9063688366117729139},
-		{input: uintptr(1234567), output: 14770111569646361914},
+		{input: "123", output: 4353148100880623749},
+		{input: []byte("123"), output: 4353148100880623749},
+		{input: int(1), output: 11468921228449061269},
+		{input: int8(1), output: 11468921228449061269},
+		{input: int16(-1), output: 9642548396912002761},
+		{input: int32(math.MaxInt32), output: 6040406647911695984},
+		{input: int64(math.MaxInt64), output: 18406436390665352972},
+		{input: uint(0), output: 3803688792395291579},
+		{input: uint8(123), output: 10501506991603099528},
+		{input: uint16(1234), output: 15687506744758839514},
+		{input: uint32(12345), output: 17744734807539824643},
+		{input: uint64(123456), output: 13032357135521718877},
+		{input: uintptr(1234567), output: 2006671164566717660},
 	}
 
 	for _, f := range fixtures {

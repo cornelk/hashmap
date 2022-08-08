@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"unsafe"
 
-	"github.com/dchest/siphash"
+	"github.com/cespare/xxhash"
 )
 
 // Get retrieves an element from the map under given hash key.
@@ -51,7 +51,7 @@ func (m *HashMap) GetUintKey(key uintptr) (value interface{}, ok bool) {
 		Cap:  intSizeBytes,
 	}
 	buf := *(*[]byte)(unsafe.Pointer(&bh))
-	h := uintptr(siphash.Hash(sipHashKey1, sipHashKey2, buf))
+	h := uintptr(xxhash.Sum64(buf))
 
 	data, element := m.indexElement(h)
 	if data == nil {
@@ -75,15 +75,7 @@ func (m *HashMap) GetUintKey(key uintptr) (value interface{}, ok bool) {
 
 // GetStringKey retrieves an element from the map under given string key.
 func (m *HashMap) GetStringKey(key string) (value interface{}, ok bool) {
-	// inline getStringHash()
-	sh := (*reflect.StringHeader)(unsafe.Pointer(&key))
-	bh := reflect.SliceHeader{
-		Data: sh.Data,
-		Len:  sh.Len,
-		Cap:  sh.Len,
-	}
-	buf := *(*[]byte)(unsafe.Pointer(&bh))
-	h := uintptr(siphash.Hash(sipHashKey1, sipHashKey2, buf))
+	h := uintptr(xxhash.Sum64String(key))
 
 	data, element := m.indexElement(h)
 	if data == nil {
