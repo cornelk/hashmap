@@ -4,6 +4,9 @@ help: ## show help, shown by default if no target is specified
 lint: ## run code linters
 	golangci-lint run
 
+benchmark: ## run benchmarks
+	go test -cpu 8 -run=^# -bench=.
+
 test: ## run tests
 	go test -race ./...
 

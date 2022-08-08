@@ -39,34 +39,34 @@ Reading from the hash map in a thread-safe way is nearly as fast as reading from
 in an unsafe way and twice as fast as Go's `sync.Map`:
 
 ```
-BenchmarkReadHashMapUint-8                	  200000	      6830 ns/op
-BenchmarkReadGoMapUintUnsafe-8            	  300000	      4280 ns/op
-BenchmarkReadGoMapUintMutex-8             	   30000	     51294 ns/op
-BenchmarkReadGoSyncMapUint-8              	  200000	     10351 ns/op
+BenchmarkReadHashMapUint-8                	 2587822	       474.1 ns/op
+BenchmarkReadGoMapUintUnsafe-8            	 3801950	       307.9 ns/op
+BenchmarkReadGoMapUintMutex-8             	   87267	     13395 ns/op
+BenchmarkReadGoSyncMapUint-8              	  999242	      1225 ns/op
 ```
 
 If your keys for the map are already hashes, no extra hashing needs to be done by the map:
 
 ```
-BenchmarkReadHashMapHashedKey-8           	 1000000	      1692 ns/op
+BenchmarkReadHashMapHashedKey-8           	 7971067	       150.5 ns/op
 ```
 
 Reading from the map while writes are happening:
 ```
-BenchmarkReadHashMapWithWritesUint-8      	  200000	      8395 ns/op
-BenchmarkReadGoMapWithWritesUintMutex-8   	   10000	    143793 ns/op
-BenchmarkReadGoSyncMapWithWritesUint-8    	  100000	     12221 ns/op
+BenchmarkReadHashMapWithWritesUint-8      	 1948606	       612.7 ns/op
+BenchmarkReadGoMapWithWritesUintMutex-8   	   19899	     70450 ns/op
+BenchmarkReadGoSyncMapWithWritesUint-8    	  829714	      1469 ns/op
 ```
 
 Write performance without any concurrent reads:
 
 ```
-BenchmarkWriteHashMapUint-8               	   10000	    210383 ns/op
-BenchmarkWriteGoMapMutexUint-8            	   30000	     53331 ns/op
-BenchmarkWriteGoSyncMapUint-8             	   10000	    176903 ns/op
+BenchmarkWriteHashMapUint-8               	   19418	     72122 ns/op
+BenchmarkWriteGoMapMutexUint-8            	  182530	      6462 ns/op
+BenchmarkWriteGoSyncMapUint-8             	   21607	     64894 ns/op
 ```
 
-The benchmarks were run with Golang 1.10.1 on MacOS.
+The benchmarks were run with Golang 1.18.3 on Linux using `make benchmark`.
 
 ### Benefits over Golang's builtin map
 

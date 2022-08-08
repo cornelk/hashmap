@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-const benchmarkItemCount = 1 << 10 // 1024
+const benchmarkItemCount = 512
 
 func setupHashMap(b *testing.B) *HashMap {
 	b.Helper()
