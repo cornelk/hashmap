@@ -9,6 +9,9 @@
 
 A Golang lock-free thread-safe HashMap optimized for fastest read access.
 
+***Warning: This library and derived work is experimental and should not be used in production. It contains an unfixed
+bug that can cause writes to be lost.***
+
 ## Usage
 
 Set a value for a key in the map:
