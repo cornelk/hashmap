@@ -2,8 +2,9 @@ package hashmap
 
 import (
 	"math"
-	"reflect"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestLog2(t *testing.T) {
@@ -18,9 +19,7 @@ func TestLog2(t *testing.T) {
 
 	for input, result := range fixtures {
 		output := log2(input)
-		if output != result {
-			t.Errorf("Log2 of %d should have been %d but was %d", input, result, output)
-		}
+		assert.Equal(t, output, result)
 	}
 }
 
@@ -46,9 +45,7 @@ func TestKeyHash(t *testing.T) {
 
 	for _, f := range fixtures {
 		output := getKeyHash(f.input)
-		if output != f.output {
-			t.Errorf("Key hash of %v and type %v should have been %d but was %d", f.input, reflect.TypeOf(f.input), f.output, output)
-		}
+		assert.Equal(t, f.output, output)
 	}
 }
 

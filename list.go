@@ -2,50 +2,46 @@ package hashmap
 
 import (
 	"sync/atomic"
-	"unsafe"
 )
 
 // List is a sorted doubly linked list.
-type List struct {
-	count uintptr
-	head  *ListElement
+type List[Key keyConstraint, Value any] struct {
+	count atomic.Uintptr
+	head  *ListElement[Key, Value]
 }
 
 // NewList returns an initialized list.
-func NewList() *List {
-	return &List{head: &ListElement{}}
+func NewList[Key keyConstraint, Value any]() *List[Key, Value] {
+	return &List[Key, Value]{head: &ListElement[Key, Value]{}}
 }
 
 // Len returns the number of elements within the list.
-func (l *List) Len() int {
+func (l *List[Key, Value]) Len() int {
 	if l == nil { // not initialized yet?
 		return 0
 	}
-
-	return int(atomic.LoadUintptr(&l.count))
+	return int(l.count.Load())
 }
 
 // Head returns the head item of the list.
-func (l *List) Head() *ListElement {
+func (l *List[Key, Value]) Head() *ListElement[Key, Value] {
 	if l == nil { // not initialized yet?
 		return nil
 	}
-
 	return l.head
 }
 
 // First returns the first item of the list.
-func (l *List) First() *ListElement {
+func (l *List[Key, Value]) First() *ListElement[Key, Value] {
 	if l == nil { // not initialized yet?
 		return nil
 	}
-
 	return l.head.Next()
 }
 
 // Add adds an item to the list and returns false if an item for the hash existed.
 // searchStart = nil will start to search at the head item.
-func (l *List) Add(element, searchStart *ListElement) (existed bool, inserted bool) {
+func (l *List[Key, Value]) Add(element, searchStart *ListElement[Key, Value]) (existed bool, inserted bool) {
 	left, found, right := l.search(searchStart, element)
 	if found != nil { // existing item found
 		return true, false
@@ -55,30 +51,58 @@ func (l *List) Add(element, searchStart *ListElement) (existed bool, inserted bo
 }
 
 // AddOrUpdate adds or updates an item to the list.
-func (l *List) AddOrUpdate(element, searchStart *ListElement) bool {
+func (l *List[Key, Value]) AddOrUpdate(element, searchStart *ListElement[Key, Value]) bool {
 	left, found, right := l.search(searchStart, element)
 	if found != nil { // existing item found
-		found.setValue(element.value) // update the value
+		found.setValue(element.value.Load()) // update the value
 		return true
 	}
 
 	return l.insertAt(element, left, right)
 }
 
+// Delete deletes an element from the list.
+func (l *List[Key, Value]) Delete(element *ListElement[Key, Value]) {
+	if !element.deleted.CompareAndSwap(0, 1) {
+		return // concurrent delete of the item is in progress
+	}
+
+	for {
+		left := element.Previous()
+		right := element.Next()
+
+		if left == nil { // element is first item in list?
+			if !l.head.nextElement.CompareAndSwap(element, right) {
+				continue // now head item was inserted concurrently
+			}
+		} else {
+			if !left.nextElement.CompareAndSwap(element, right) {
+				continue // item was modified concurrently
+			}
+		}
+		if right != nil {
+			right.previousElement.CompareAndSwap(element, left)
+		}
+		break
+	}
+
+	l.count.Add(^uintptr(0)) // decrease counter
+}
+
 // Cas compares and swaps the value of an item in the list.
-func (l *List) Cas(element *ListElement, oldValue interface{}, searchStart *ListElement) bool {
+func (l *List[Key, Value]) Cas(element *ListElement[Key, Value], oldValue *Value, searchStart *ListElement[Key, Value]) bool {
 	_, found, _ := l.search(searchStart, element)
 	if found == nil { // no existing item found
 		return false
 	}
 
-	if found.casValue(oldValue, element.value) {
+	if found.casValue(oldValue, element.value.Load()) {
 		return true
 	}
 	return false
 }
 
-func (l *List) search(searchStart, item *ListElement) (left *ListElement, found *ListElement, right *ListElement) {
+func (l *List[Key, Value]) search(searchStart, item *ListElement[Key, Value]) (left, found, right *ListElement[Key, Value]) {
 	if searchStart != nil && item.keyHash < searchStart.keyHash { // key would remain left from item? {
 		searchStart = nil // start search at head
 	}
@@ -114,67 +138,22 @@ func (l *List) search(searchStart, item *ListElement) (left *ListElement, found 
 	}
 }
 
-func (l *List) insertAt(element, left, right *ListElement) bool {
+func (l *List[Key, Value]) insertAt(element, left, right *ListElement[Key, Value]) bool {
 	if left == nil {
-		// element->previous = head
-		element.previousElement = unsafe.Pointer(l.head)
-		// element->next = right
-		element.nextElement = unsafe.Pointer(right)
-
-		// insert at head, head-->next = element
-		if !atomic.CompareAndSwapPointer(&l.head.nextElement, unsafe.Pointer(right), unsafe.Pointer(element)) {
-			return false // item was modified concurrently
-		}
-
-		// right->previous = element
-		if right != nil {
-			if !atomic.CompareAndSwapPointer(&right.previousElement, unsafe.Pointer(l.head), unsafe.Pointer(element)) {
-				return false // item was modified concurrently
-			}
-		}
-	} else {
-		element.previousElement = unsafe.Pointer(left)
-		element.nextElement = unsafe.Pointer(right)
-
-		if !atomic.CompareAndSwapPointer(&left.nextElement, unsafe.Pointer(right), unsafe.Pointer(element)) {
-			return false // item was modified concurrently
-		}
-
-		if right != nil {
-			if !atomic.CompareAndSwapPointer(&right.previousElement, unsafe.Pointer(left), unsafe.Pointer(element)) {
-				return false // item was modified concurrently
-			}
-		}
+		left = l.head
 	}
 
-	atomic.AddUintptr(&l.count, 1)
+	element.previousElement.Store(left)
+	element.nextElement.Store(right)
+
+	if !left.nextElement.CompareAndSwap(right, element) {
+		return false // item was modified concurrently
+	}
+
+	if right != nil && !right.previousElement.CompareAndSwap(left, element) {
+		return false // item was modified concurrently
+	}
+
+	l.count.Add(1)
 	return true
-}
-
-// Delete deletes an element from the list.
-func (l *List) Delete(element *ListElement) {
-	if !atomic.CompareAndSwapUintptr(&element.deleted, uintptr(0), uintptr(1)) {
-		return // concurrent delete of the item in progress
-	}
-
-	for {
-		left := element.Previous()
-		right := element.Next()
-
-		if left == nil { // element is first item in list?
-			if !atomic.CompareAndSwapPointer(&l.head.nextElement, unsafe.Pointer(element), unsafe.Pointer(right)) {
-				continue // now head item was inserted concurrently
-			}
-		} else {
-			if !atomic.CompareAndSwapPointer(&left.nextElement, unsafe.Pointer(element), unsafe.Pointer(right)) {
-				continue // item was modified concurrently
-			}
-		}
-		if right != nil {
-			atomic.CompareAndSwapPointer(&right.previousElement, unsafe.Pointer(element), unsafe.Pointer(left))
-		}
-		break
-	}
-
-	atomic.AddUintptr(&l.count, ^uintptr(0)) // decrease counter
 }

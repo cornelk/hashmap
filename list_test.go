@@ -3,7 +3,7 @@ package hashmap
 import "testing"
 
 func TestListNew(t *testing.T) {
-	l := NewList()
+	l := NewList[uintptr, uintptr]()
 	n := l.First()
 	if n != nil {
 		t.Error("First item of list should be nil.")

@@ -9,6 +9,8 @@
 
 A Golang lock-free thread-safe HashMap optimized for fastest read access.
 
+It requires Golang 1.19+ as it makes use of Generics and the new atomic package helpers. 
+
 ***Warning: This library and derived work is experimental and should not be used in production. It contains an unfixed
 bug that can cause writes to be lost.***
 

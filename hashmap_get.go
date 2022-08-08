@@ -1,106 +1,22 @@
 package hashmap
 
-import (
-	"reflect"
-	"unsafe"
-
-	"github.com/cespare/xxhash"
-)
-
 // Get retrieves an element from the map under given hash key.
 // Using interface{} adds a performance penalty.
 // Please consider using GetUintKey or GetStringKey instead.
-func (m *HashMap) Get(key interface{}) (value interface{}, ok bool) {
-	h := getKeyHash(key)
-	data, element := m.indexElement(h)
+func (m *HashMap[Key, Value]) Get(key Key) (value interface{}, ok bool) {
+	hash := getKeyHash(key)
+	data, element := m.indexElement(hash)
 	if data == nil {
 		return nil, false
 	}
 
 	// inline HashMap.searchItem()
 	for element != nil {
-		if element.keyHash == h && element.key == key {
+		if element.keyHash == hash && element.key == key {
 			return element.Value(), true
 		}
 
-		if element.keyHash > h {
-			return nil, false
-		}
-
-		element = element.Next()
-	}
-	return nil, false
-}
-
-// GetUintKey retrieves an element from the map under given integer key.
-func (m *HashMap) GetUintKey(key uintptr) (value interface{}, ok bool) {
-	// inline getUintptrHash()
-	bh := reflect.SliceHeader{
-		Data: uintptr(unsafe.Pointer(&key)),
-		Len:  intSizeBytes,
-		Cap:  intSizeBytes,
-	}
-	buf := *(*[]byte)(unsafe.Pointer(&bh))
-	h := uintptr(xxhash.Sum64(buf))
-
-	data, element := m.indexElement(h)
-	if data == nil {
-		return nil, false
-	}
-
-	// inline HashMap.searchItem()
-	for element != nil {
-		if element.keyHash == h && element.key == key {
-			return element.Value(), true
-		}
-
-		if element.keyHash > h {
-			return nil, false
-		}
-
-		element = element.Next()
-	}
-	return nil, false
-}
-
-// GetStringKey retrieves an element from the map under given string key.
-func (m *HashMap) GetStringKey(key string) (value interface{}, ok bool) {
-	h := uintptr(xxhash.Sum64String(key))
-
-	data, element := m.indexElement(h)
-	if data == nil {
-		return nil, false
-	}
-
-	// inline HashMap.searchItem()
-	for element != nil {
-		if element.keyHash == h && element.key == key {
-			return element.Value(), true
-		}
-
-		if element.keyHash > h {
-			return nil, false
-		}
-
-		element = element.Next()
-	}
-	return nil, false
-}
-
-// GetHashedKey retrieves an element from the map under given hashed key.
-func (m *HashMap) GetHashedKey(hashedKey uintptr) (value interface{}, ok bool) {
-	data, element := m.indexElement(hashedKey)
-	if data == nil {
-		return nil, false
-	}
-
-	// inline HashMap.searchItem()
-	for element != nil {
-		if element.keyHash == hashedKey {
-			return element.Value(), true
-		}
-
-		if element.keyHash > hashedKey {
+		if element.keyHash > hash {
 			return nil, false
 		}
 
@@ -112,39 +28,39 @@ func (m *HashMap) GetHashedKey(hashedKey uintptr) (value interface{}, ok bool) {
 // GetOrInsert returns the existing value for the key if present.
 // Otherwise, it stores and returns the given value.
 // The loaded result is true if the value was loaded, false if stored.
-func (m *HashMap) GetOrInsert(key, value interface{}) (actual interface{}, loaded bool) {
-	h := getKeyHash(key)
-	var newelement *ListElement
+func (m *HashMap[Key, Value]) GetOrInsert(key Key, value Value) (actual Value, loaded bool) {
+	hash := getKeyHash(key)
+	var newElement *ListElement[Key, Value]
 
 	for {
-		data, element := m.indexElement(h)
+		data, element := m.indexElement(hash)
 		if data == nil {
 			m.allocate(DefaultSize)
 			continue
 		}
 
 		for element != nil {
-			if element.keyHash == h && element.key == key {
+			if element.keyHash == hash && element.key == key {
 				actual = element.Value()
 				return actual, true
 			}
 
-			if element.keyHash > h {
+			if element.keyHash > hash {
 				break
 			}
 
 			element = element.Next()
 		}
 
-		if newelement == nil { // allocate only once
-			newelement = &ListElement{
+		if newElement == nil { // allocate only once
+			newElement = &ListElement[Key, Value]{
 				key:     key,
-				keyHash: h,
-				value:   unsafe.Pointer(&value),
+				keyHash: hash,
 			}
+			newElement.value.Store(&value)
 		}
 
-		if m.insertListElement(newelement, false) {
+		if m.insertListElement(newElement, false) {
 			return value, false
 		}
 	}

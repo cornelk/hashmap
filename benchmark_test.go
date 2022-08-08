@@ -9,10 +9,10 @@ import (
 
 const benchmarkItemCount = 512
 
-func setupHashMap(b *testing.B) *HashMap {
+func setupHashMap(b *testing.B) *HashMap[uintptr, uintptr] {
 	b.Helper()
 
-	m := &HashMap{}
+	m := &HashMap[uintptr, uintptr]{}
 	for i := uintptr(0); i < benchmarkItemCount; i++ {
 		m.Set(i, i)
 	}
@@ -21,10 +21,10 @@ func setupHashMap(b *testing.B) *HashMap {
 	return m
 }
 
-func setupHashMapString(b *testing.B) (*HashMap, []string) {
+func setupHashMapString(b *testing.B) (*HashMap[string, string], []string) {
 	b.Helper()
 
-	m := &HashMap{}
+	m := &HashMap[string, string]{}
 	keys := make([]string, benchmarkItemCount)
 	for i := 0; i < benchmarkItemCount; i++ {
 		s := strconv.Itoa(i)
@@ -34,20 +34,6 @@ func setupHashMapString(b *testing.B) (*HashMap, []string) {
 
 	b.ResetTimer()
 	return m, keys
-}
-
-func setupHashMapHashedKey(b *testing.B) *HashMap {
-	b.Helper()
-
-	m := &HashMap{}
-	log := log2(uintptr(benchmarkItemCount))
-	for i := uintptr(0); i < benchmarkItemCount; i++ {
-		hash := i << (strconv.IntSize - log)
-		m.SetHashedKey(hash, i)
-	}
-
-	b.ResetTimer()
-	return m
 }
 
 func setupGoMap(b *testing.B) map[uintptr]uintptr {
@@ -94,7 +80,7 @@ func BenchmarkReadHashMapUint(b *testing.B) {
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
 			for i := uintptr(0); i < benchmarkItemCount; i++ {
-				j, _ := m.GetUintKey(i)
+				j, _ := m.Get(i)
 				if j != i {
 					b.Fail()
 				}
@@ -118,7 +104,7 @@ func BenchmarkReadHashMapWithWritesUint(b *testing.B) {
 		} else {
 			for pb.Next() {
 				for i := uintptr(0); i < benchmarkItemCount; i++ {
-					j, _ := m.GetUintKey(i)
+					j, _ := m.Get(i)
 					if j != i {
 						b.Fail()
 					}
@@ -135,7 +121,7 @@ func BenchmarkReadHashMapString(b *testing.B) {
 		for pb.Next() {
 			for i := 0; i < benchmarkItemCount; i++ {
 				s := keys[i]
-				sVal, _ := m.GetStringKey(s)
+				sVal, _ := m.Get(s)
 				if sVal != s {
 					b.Fail()
 				}
@@ -151,23 +137,6 @@ func BenchmarkReadHashMapInterface(b *testing.B) {
 		for pb.Next() {
 			for i := uintptr(0); i < benchmarkItemCount; i++ {
 				j, _ := m.Get(i)
-				if j != i {
-					b.Fail()
-				}
-			}
-		}
-	})
-}
-
-func BenchmarkReadHashMapHashedKey(b *testing.B) {
-	m := setupHashMapHashedKey(b)
-	log := log2(uintptr(benchmarkItemCount))
-
-	b.RunParallel(func(pb *testing.PB) {
-		for pb.Next() {
-			for i := uintptr(0); i < benchmarkItemCount; i++ {
-				hash := i << (strconv.IntSize - log)
-				j, _ := m.GetHashedKey(hash)
 				if j != i {
 					b.Fail()
 				}
@@ -310,23 +279,11 @@ func BenchmarkReadGoMapStringMutex(b *testing.B) {
 }
 
 func BenchmarkWriteHashMapUint(b *testing.B) {
-	m := &HashMap{}
+	m := &HashMap[uintptr, uintptr]{}
 
 	for n := 0; n < b.N; n++ {
 		for i := uintptr(0); i < benchmarkItemCount; i++ {
 			m.Set(i, i)
-		}
-	}
-}
-
-func BenchmarkWriteHashMapHashedKey(b *testing.B) {
-	m := &HashMap{}
-	log := log2(uintptr(benchmarkItemCount))
-
-	for n := 0; n < b.N; n++ {
-		for i := uintptr(0); i < benchmarkItemCount; i++ {
-			hash := i << (strconv.IntSize - log)
-			m.SetHashedKey(hash, i)
 		}
 	}
 }

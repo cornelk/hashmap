@@ -7,7 +7,7 @@ import (
 )
 
 func TestInsertCollision(t *testing.T) {
-	m := &HashMap{}
+	m := New[string, int]()
 
 	customHash = func(b []byte) uint64 {
 		return 4 // chosen by fair dice roll. guaranteed to be random.

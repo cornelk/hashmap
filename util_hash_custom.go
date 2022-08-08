@@ -17,8 +17,6 @@ func getKeyHash(key interface{}) uintptr {
 	switch x := key.(type) {
 	case string:
 		return getStringHash(x)
-	case []byte:
-		return uintptr(customHash(x))
 	case int:
 		return getUintptrHash(uintptr(x))
 	case int8:
