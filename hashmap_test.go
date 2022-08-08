@@ -242,7 +242,7 @@ func TestResize(t *testing.T) {
 		time.Sleep(time.Microsecond * 50)
 	}
 
-	if m.Fillrate() != 34 {
+	if m.FillRate() != 34 {
 		t.Error("Expecting 34 percent fillrate.")
 	}
 

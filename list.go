@@ -45,7 +45,7 @@ func (l *List) First() *ListElement {
 
 // Add adds an item to the list and returns false if an item for the hash existed.
 // searchStart = nil will start to search at the head item.
-func (l *List) Add(element *ListElement, searchStart *ListElement) (existed bool, inserted bool) {
+func (l *List) Add(element, searchStart *ListElement) (existed bool, inserted bool) {
 	left, found, right := l.search(searchStart, element)
 	if found != nil { // existing item found
 		return true, false
@@ -55,7 +55,7 @@ func (l *List) Add(element *ListElement, searchStart *ListElement) (existed bool
 }
 
 // AddOrUpdate adds or updates an item to the list.
-func (l *List) AddOrUpdate(element *ListElement, searchStart *ListElement) bool {
+func (l *List) AddOrUpdate(element, searchStart *ListElement) bool {
 	left, found, right := l.search(searchStart, element)
 	if found != nil { // existing item found
 		found.setValue(element.value) // update the value
@@ -78,7 +78,7 @@ func (l *List) Cas(element *ListElement, oldValue interface{}, searchStart *List
 	return false
 }
 
-func (l *List) search(searchStart *ListElement, item *ListElement) (left *ListElement, found *ListElement, right *ListElement) {
+func (l *List) search(searchStart, item *ListElement) (left *ListElement, found *ListElement, right *ListElement) {
 	if searchStart != nil && item.keyHash < searchStart.keyHash { // key would remain left from item? {
 		searchStart = nil // start search at head
 	}
@@ -114,7 +114,7 @@ func (l *List) search(searchStart *ListElement, item *ListElement) (left *ListEl
 	}
 }
 
-func (l *List) insertAt(element *ListElement, left *ListElement, right *ListElement) bool {
+func (l *List) insertAt(element, left, right *ListElement) bool {
 	if left == nil {
 		// element->previous = head
 		element.previousElement = unsafe.Pointer(l.head)

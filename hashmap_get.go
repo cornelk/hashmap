@@ -122,7 +122,7 @@ func (m *HashMap) GetHashedKey(hashedKey uintptr) (value interface{}, ok bool) {
 // GetOrInsert returns the existing value for the key if present.
 // Otherwise, it stores and returns the given value.
 // The loaded result is true if the value was loaded, false if stored.
-func (m *HashMap) GetOrInsert(key interface{}, value interface{}) (actual interface{}, loaded bool) {
+func (m *HashMap) GetOrInsert(key, value interface{}) (actual interface{}, loaded bool) {
 	h := getKeyHash(key)
 	var newelement *ListElement
 

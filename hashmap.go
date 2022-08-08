@@ -69,15 +69,15 @@ func (m *HashMap) allocate(newSize uintptr) {
 	}
 }
 
-// Fillrate returns the fill rate of the map as an percentage integer.
-func (m *HashMap) Fillrate() uintptr {
+// FillRate returns the fill rate of the map as an percentage integer.
+func (m *HashMap) FillRate() uintptr {
 	data := m.mapData()
 	count := atomic.LoadUintptr(&data.count)
 	l := uintptr(len(data.index))
 	return (count * 100) / l
 }
 
-func (m *HashMap) resizeNeeded(data *hashMapData, count uintptr) bool {
+func (m *HashMap) isResizeNeeded(data *hashMapData, count uintptr) bool {
 	l := uintptr(len(data.index))
 	if l == 0 {
 		return false
@@ -97,7 +97,7 @@ func (m *HashMap) indexElement(hashedKey uintptr) (data *hashMapData, item *List
 	return data, item
 }
 
-/* The Golang 1.10.1 compiler dons not inline this function well
+/* The Golang 1.10.1 compiler does not inline this function well
 func (m *HashMap) searchItem(item *ListElement, key interface{}, keyHash uintptr) (value interface{}, ok bool) {
 	for item != nil {
 		if item.keyHash == keyHash && item.key == key {
@@ -202,7 +202,7 @@ func (m *HashMap) deleteElement(element *ListElement) {
 // Insert sets the value under the specified key to the map if it does not exist yet.
 // If a resizing operation is happening concurrently while calling Set, the item might show up in the map only after the resize operation is finished.
 // Returns true if the item was inserted or false if it existed.
-func (m *HashMap) Insert(key interface{}, value interface{}) bool {
+func (m *HashMap) Insert(key, value interface{}) bool {
 	h := getKeyHash(key)
 	element := &ListElement{
 		key:     key,
@@ -214,7 +214,7 @@ func (m *HashMap) Insert(key interface{}, value interface{}) bool {
 
 // Set sets the value under the specified key to the map. An existing item for this key will be overwritten.
 // If a resizing operation is happening concurrently while calling Set, the item might show up in the map only after the resize operation is finished.
-func (m *HashMap) Set(key interface{}, value interface{}) {
+func (m *HashMap) Set(key, value interface{}) {
 	h := getKeyHash(key)
 	element := &ListElement{
 		key:     key,
@@ -261,7 +261,7 @@ func (m *HashMap) insertListElement(element *ListElement, update bool) bool {
 		}
 
 		count := data.addItemToIndex(element)
-		if m.resizeNeeded(data, count) {
+		if m.isResizeNeeded(data, count) {
 			if atomic.CompareAndSwapUintptr(&m.resizing, uintptr(0), uintptr(1)) {
 				go m.grow(0, true)
 			}
@@ -361,7 +361,7 @@ func (m *HashMap) grow(newSize uintptr, loop bool) {
 
 		// check if a new resize needs to be done already
 		count := uintptr(m.Len())
-		if !m.resizeNeeded(newdata, count) {
+		if !m.isResizeNeeded(newdata, count) {
 			break
 		}
 		newSize = 0 // 0 means double the current size
