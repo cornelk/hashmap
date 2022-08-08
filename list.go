@@ -25,7 +25,7 @@ func (l *List) Len() int {
 	return int(atomic.LoadUintptr(&l.count))
 }
 
-// First returns the head item of the list.
+// Head returns the head item of the list.
 func (l *List) Head() *ListElement {
 	if l == nil { // not initialized yet?
 		return nil
@@ -44,7 +44,7 @@ func (l *List) First() *ListElement {
 }
 
 // Add adds an item to the list and returns false if an item for the hash existed.
-// searchStart = nil will start to search at the head item
+// searchStart = nil will start to search at the head item.
 func (l *List) Add(element *ListElement, searchStart *ListElement) (existed bool, inserted bool) {
 	left, found, right := l.search(searchStart, element)
 	if found != nil { // existing item found
@@ -116,9 +116,9 @@ func (l *List) search(searchStart *ListElement, item *ListElement) (left *ListEl
 
 func (l *List) insertAt(element *ListElement, left *ListElement, right *ListElement) bool {
 	if left == nil {
-		//element->previous = head
+		// element->previous = head
 		element.previousElement = unsafe.Pointer(l.head)
-		//element->next = right
+		// element->next = right
 		element.nextElement = unsafe.Pointer(right)
 
 		// insert at head, head-->next = element
@@ -126,7 +126,7 @@ func (l *List) insertAt(element *ListElement, left *ListElement, right *ListElem
 			return false // item was modified concurrently
 		}
 
-		//right->previous = element
+		// right->previous = element
 		if right != nil {
 			if !atomic.CompareAndSwapPointer(&right.previousElement, unsafe.Pointer(l.head), unsafe.Pointer(element)) {
 				return false // item was modified concurrently

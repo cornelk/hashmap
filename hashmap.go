@@ -1,3 +1,4 @@
+// Package hashmap provides a lock-free and thread-safe HashMap.
 package hashmap
 
 import (
@@ -9,7 +10,7 @@ import (
 	"unsafe"
 )
 
-// DefaultSize is the default size for a zero allocated map
+// DefaultSize is the default size for a zero allocated map.
 const DefaultSize = 8
 
 // MaxFillRate is the maximum fill rate for the slice before a resize  will happen.
@@ -126,9 +127,9 @@ func (m *HashMap) Del(key interface{}) {
 ElementLoop:
 	for _, element = m.indexElement(h); element != nil; element = element.Next() {
 		if element.keyHash == h {
-			switch key.(type) {
+			switch k := key.(type) {
 			case []byte:
-				if bytes.Compare(element.key.([]byte), key.([]byte)) == 0 {
+				if bytes.Equal(element.key.([]byte), k) {
 					break ElementLoop
 				}
 			default:
@@ -159,12 +160,11 @@ func (m *HashMap) DelHashedKey(hashedKey uintptr) {
 
 	// inline HashMap.searchItem()
 	var element *ListElement
+
 ElementLoop:
 	for _, element = m.indexElement(hashedKey); element != nil; element = element.Next() {
 		if element.keyHash == hashedKey {
-
 			break ElementLoop
-
 		}
 
 		if element.keyHash > hashedKey {
@@ -179,7 +179,7 @@ ElementLoop:
 	list.Delete(element)
 }
 
-// deleteElement deletes an element from index
+// deleteElement deletes an element from index.
 func (m *HashMap) deleteElement(element *ListElement) {
 	for {
 		data := m.mapData()
@@ -295,7 +295,7 @@ func (m *HashMap) Cas(key, from, to interface{}) bool {
 	return m.CasHashedKey(h, from, to)
 }
 
-// adds an item to the index if needed and returns the new item counter if it changed, otherwise 0
+// adds an item to the index if needed and returns the new item counter if it changed, otherwise 0.
 func (mapData *hashMapData) addItemToIndex(item *ListElement) uintptr {
 	index := item.keyHash >> mapData.keyshifts
 	ptr := (*unsafe.Pointer)(unsafe.Pointer(uintptr(mapData.data) + index*intSizeBytes))

@@ -10,6 +10,8 @@ import (
 const benchmarkItemCount = 1 << 10 // 1024
 
 func setupHashMap(b *testing.B) *HashMap {
+	b.Helper()
+
 	m := &HashMap{}
 	for i := uintptr(0); i < benchmarkItemCount; i++ {
 		m.Set(i, i)
@@ -20,6 +22,8 @@ func setupHashMap(b *testing.B) *HashMap {
 }
 
 func setupHashMapString(b *testing.B) (*HashMap, []string) {
+	b.Helper()
+
 	m := &HashMap{}
 	keys := make([]string, benchmarkItemCount)
 	for i := 0; i < benchmarkItemCount; i++ {
@@ -33,6 +37,8 @@ func setupHashMapString(b *testing.B) (*HashMap, []string) {
 }
 
 func setupHashMapHashedKey(b *testing.B) *HashMap {
+	b.Helper()
+
 	m := &HashMap{}
 	log := log2(uintptr(benchmarkItemCount))
 	for i := uintptr(0); i < benchmarkItemCount; i++ {
@@ -45,6 +51,8 @@ func setupHashMapHashedKey(b *testing.B) *HashMap {
 }
 
 func setupGoMap(b *testing.B) map[uintptr]uintptr {
+	b.Helper()
+
 	m := make(map[uintptr]uintptr)
 	for i := uintptr(0); i < benchmarkItemCount; i++ {
 		m[i] = i
@@ -55,6 +63,8 @@ func setupGoMap(b *testing.B) map[uintptr]uintptr {
 }
 
 func setupGoSyncMap(b *testing.B) *sync.Map {
+	b.Helper()
+
 	m := &sync.Map{}
 	for i := uintptr(0); i < benchmarkItemCount; i++ {
 		m.Store(i, i)
@@ -65,6 +75,8 @@ func setupGoSyncMap(b *testing.B) *sync.Map {
 }
 
 func setupGoMapString(b *testing.B) (map[string]string, []string) {
+	b.Helper()
+
 	m := make(map[string]string)
 	keys := make([]string, benchmarkItemCount)
 	for i := 0; i < benchmarkItemCount; i++ {

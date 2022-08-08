@@ -118,7 +118,6 @@ func TestSet(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-
 			m := New(4)
 			elephant := "elephant"
 			monkey := "monkey"
@@ -341,7 +340,6 @@ func TestDelete(t *testing.T) {
 }
 
 func TestIterator(t *testing.T) {
-
 	tests := []struct {
 		name string
 		key  func(int) interface{}
@@ -489,7 +487,7 @@ func TestCompareAndSwap(t *testing.T) {
 	}
 }
 
-// TestAPICounter shows how to use the hashmap to count REST server API calls
+// TestAPICounter shows how to use the hashmap to count REST server API calls.
 func TestAPICounter(t *testing.T) {
 	tests := []struct {
 		name string
@@ -555,6 +553,7 @@ func TestByteSlice(t *testing.T) {
 	}
 }
 
+// nolint: funlen, gocognit
 func TestHashMap_parallel(t *testing.T) {
 	max := 10
 	dur := 2 * time.Second
@@ -609,19 +608,23 @@ func TestHashMap_parallel(t *testing.T) {
 	}
 	t.Run("set_get", func(t *testing.T) {
 		doneSet := do(t, max, dur, func(t *testing.T, i int) {
+			t.Helper()
 			m.Set(i, i)
 		})
 		doneGet := do(t, max, dur, func(t *testing.T, i int) {
+			t.Helper()
 			if _, ok := m.Get(i); !ok {
 				t.Errorf("missing value for key: %d", i)
 			}
 		})
 		doneGetStringKey := do(t, max, dur, func(t *testing.T, i int) {
+			t.Helper()
 			if _, ok := m.GetStringKey(fmt.Sprintf("%d", i)); !ok {
 				t.Errorf("missing value for key: %d", i)
 			}
 		})
 		doneGetHashedKey := do(t, max, dur, func(t *testing.T, i int) {
+			t.Helper()
 			if _, ok := m.GetHashedKey(uintptr(i)); !ok {
 				t.Errorf("missing value for key: %d", i)
 			}
@@ -633,9 +636,11 @@ func TestHashMap_parallel(t *testing.T) {
 	})
 	t.Run("get-or-insert-and-delete", func(t *testing.T) {
 		doneGetOrInsert := do(t, max, dur, func(t *testing.T, i int) {
+			t.Helper()
 			m.GetOrInsert(i, i)
 		})
 		doneDel := do(t, max, dur, func(t *testing.T, i int) {
+			t.Helper()
 			m.Del(i)
 		})
 		wait(t, doneGetOrInsert)
@@ -648,7 +653,6 @@ func TestHashMap_SetConcurrent(t *testing.T) {
 
 	var wg sync.WaitGroup
 	for i := 0; i < 100; i++ {
-
 		wg.Add(1)
 		go func(blocks *HashMap, i int) {
 			defer wg.Done()
