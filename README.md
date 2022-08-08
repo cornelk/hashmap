@@ -14,6 +14,8 @@ bug that can cause writes to be lost.***
 
 ## Usage
 
+The supported key types are string, int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64, uintptr.
+
 Set a value for a key in the map:
 
 ```

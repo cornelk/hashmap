@@ -16,9 +16,7 @@ type Animal struct {
 func uKey(i int) interface{}      { return uintptr(i) }
 func iKey(i int) interface{}      { return i }
 func sKey(i int) interface{}      { return strconv.Itoa(i) }
-func bKey(i int) interface{}      { return []byte(strconv.Itoa(i) + "bytes") }
 func s2sKey(s string) interface{} { return s }
-func s2bKey(s string) interface{} { return []byte(s) }
 
 func TestMapCreation(t *testing.T) {
 	m := &HashMap{}
@@ -35,7 +33,6 @@ func TestOverwrite(t *testing.T) {
 		{name: "uintptr", key: uKey},
 		{name: "int", key: iKey},
 		{name: "string", key: sKey},
-		{name: "[]byte", key: bKey},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -70,7 +67,6 @@ func TestInsert(t *testing.T) {
 		{name: "uintptr", key: uKey},
 		{name: "int", key: iKey},
 		{name: "string", key: sKey},
-		{name: "[]byte", key: bKey},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -114,7 +110,6 @@ func TestSet(t *testing.T) {
 	}{
 		{name: "int", key: iKey},
 		{name: "string", key: sKey},
-		{name: "[]byte", key: bKey},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -140,7 +135,6 @@ func TestGet(t *testing.T) {
 		key  func(string) interface{}
 	}{
 		{name: "string", key: s2sKey},
-		{name: "[]byte", key: s2bKey},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -261,7 +255,6 @@ func TestStringer(t *testing.T) {
 	}{
 		{name: "int", key: iKey},
 		{name: "string", key: sKey},
-		{name: "[]byte", key: bKey},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -305,7 +298,6 @@ func TestDelete(t *testing.T) {
 	}{
 		{name: "int", key: func(i int) interface{} { return i }},
 		{name: "string", key: func(i int) interface{} { return strconv.Itoa(i) }},
-		{name: "[]byte", key: func(i int) interface{} { return []byte(strconv.Itoa(i) + "bytes") }},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -353,7 +345,6 @@ func TestIterator(t *testing.T) {
 	}{
 		{name: "uintptr", key: iKey},
 		{name: "string", key: sKey},
-		{name: "[]byte", key: bKey},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -460,7 +451,6 @@ func TestCompareAndSwap(t *testing.T) {
 		key  interface{}
 	}{
 		{name: "string", key: "animal"},
-		{name: "[]byte", key: []byte(`animal`)},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -501,7 +491,6 @@ func TestAPICounter(t *testing.T) {
 		key  func(string) interface{}
 	}{
 		{name: "string", key: s2sKey},
-		{name: "[]byte", key: s2bKey},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -535,22 +524,6 @@ func TestExample(t *testing.T) {
 	m.Set("amount", i)
 
 	j, ok := m.Get("amount")
-	if !ok {
-		t.Fail()
-	}
-
-	if i != j {
-		t.Fail()
-	}
-}
-
-func TestByteSlice(t *testing.T) {
-	m := &HashMap{}
-	k := []byte(`Well this is a fine mess`)
-	i := 123
-	m.Set(k, i)
-
-	j, ok := m.Get(k)
 	if !ok {
 		t.Fail()
 	}

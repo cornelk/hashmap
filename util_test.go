@@ -31,8 +31,7 @@ func TestKeyHash(t *testing.T) {
 	}
 	var fixtures = []testFixture{
 		{input: "123", output: 4353148100880623749},
-		{input: []byte("123"), output: 4353148100880623749},
-		{input: int(1), output: 11468921228449061269},
+		{input: 1, output: 11468921228449061269},
 		{input: int8(1), output: 11468921228449061269},
 		{input: int16(-1), output: 9642548396912002761},
 		{input: int32(math.MaxInt32), output: 6040406647911695984},

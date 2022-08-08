@@ -41,8 +41,6 @@ func getKeyHash(key interface{}) uintptr {
 	switch x := key.(type) {
 	case string:
 		return uintptr(xxhash.Sum64String(x))
-	case []byte:
-		return uintptr(xxhash.Sum64(x))
 	case int:
 		return getUintptrHash(uintptr(x))
 	case int8:

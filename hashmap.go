@@ -126,17 +126,8 @@ func (m *HashMap) Del(key interface{}) {
 	var element *ListElement
 ElementLoop:
 	for _, element = m.indexElement(h); element != nil; element = element.Next() {
-		if element.keyHash == h {
-			switch k := key.(type) {
-			case []byte:
-				if bytes.Equal(element.key.([]byte), k) {
-					break ElementLoop
-				}
-			default:
-				if element.key == key {
-					break ElementLoop
-				}
-			}
+		if element.keyHash == h && element.key == key {
+			break ElementLoop
 		}
 
 		if element.keyHash > h {
