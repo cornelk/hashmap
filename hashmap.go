@@ -41,8 +41,13 @@ func New[Key comparable, Value any]() *HashMap[Key, Value] {
 func NewSized[Key comparable, Value any](size uintptr) *HashMap[Key, Value] {
 	m := &HashMap[Key, Value]{}
 	m.allocate(size)
-	m.setHasher()
+	m.setDefaultHasher()
 	return m
+}
+
+// SetHasher sets a custom hasher.
+func (m *HashMap[Key, Value]) SetHasher(hasher func(Key) uintptr) {
+	m.hasher = hasher
 }
 
 // Len returns the number of elements within the map.
@@ -222,8 +227,8 @@ func (m *HashMap[Key, Value]) allocate(newSize uintptr) {
 	}
 }
 
-// setHasher sets the specialized hasher depending on the key type.
-func (m *HashMap[Key, Value]) setHasher() {
+// setDefaultHasher sets the default hasher depending on the key type.
+func (m *HashMap[Key, Value]) setDefaultHasher() {
 	var key Key
 	switch any(key).(type) {
 	case string:

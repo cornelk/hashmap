@@ -25,7 +25,12 @@ func TestLog2(t *testing.T) {
 
 func TestInsertCollision(t *testing.T) {
 	m := New[string, int]()
-	m.hasher = m.staticHasher
+
+	staticHasher := func(key string) uintptr {
+		return 4 // chosen by fair dice roll. guaranteed to be random.
+	}
+
+	m.SetHasher(staticHasher)
 
 	inserted := m.Insert("1", 1)
 	require.True(t, inserted)
