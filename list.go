@@ -5,13 +5,13 @@ import (
 )
 
 // List is a sorted doubly linked list.
-type List[Key keyConstraint, Value any] struct {
+type List[Key comparable, Value any] struct {
 	count atomic.Uintptr
 	head  *ListElement[Key, Value]
 }
 
 // NewList returns an initialized list.
-func NewList[Key keyConstraint, Value any]() *List[Key, Value] {
+func NewList[Key comparable, Value any]() *List[Key, Value] {
 	return &List[Key, Value]{
 		head: &ListElement[Key, Value]{},
 	}

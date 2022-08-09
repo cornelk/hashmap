@@ -5,7 +5,7 @@ import (
 )
 
 // ListElement is an element of a list.
-type ListElement[Key keyConstraint, Value any] struct {
+type ListElement[Key comparable, Value any] struct {
 	keyHash uintptr
 	// deleted marks the item as deleting or deleted
 	// this is using uintptr instead of atomic.Bool to avoid using 32 bit int on 64 bit systems

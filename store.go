@@ -5,7 +5,7 @@ import (
 	"unsafe"
 )
 
-type store[Key keyConstraint, Value any] struct {
+type store[Key comparable, Value any] struct {
 	keyShifts uintptr                    // Pointer size - log2 of array size, to be used as index in the data array
 	count     atomic.Uintptr             // count of filled elements in the slice
 	array     unsafe.Pointer             // pointer to slice data array

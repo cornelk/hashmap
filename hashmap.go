@@ -16,13 +16,8 @@ const DefaultSize = 8
 // MaxFillRate is the maximum fill rate for the slice before a resize  will happen.
 const MaxFillRate = 50
 
-type keyConstraint interface {
-	string | int | int8 | int16 | int32 | int64 | uint | uint8 | uint16 | uint32 | uint64 | uintptr |
-		float32 | float64 | complex64 | complex128
-}
-
 // HashMap implements a read optimized hash map.
-type HashMap[Key keyConstraint, Value any] struct {
+type HashMap[Key comparable, Value any] struct {
 	hasher     func(Key) uintptr
 	store      atomic.Pointer[store[Key, Value]] // pointer to a map instance that gets replaced if the map resizes
 	linkedList atomic.Pointer[List[Key, Value]]  // key sorted linked list of elements
@@ -32,18 +27,18 @@ type HashMap[Key keyConstraint, Value any] struct {
 }
 
 // KeyValue represents a key/value that is returned by the iterator.
-type KeyValue[Key keyConstraint, Value any] struct {
+type KeyValue[Key comparable, Value any] struct {
 	Key   Key
 	Value Value
 }
 
 // New returns a new HashMap instance.
-func New[Key keyConstraint, Value any]() *HashMap[Key, Value] {
+func New[Key comparable, Value any]() *HashMap[Key, Value] {
 	return NewSized[Key, Value](DefaultSize)
 }
 
 // NewSized returns a new HashMap instance with a specific initialization size.
-func NewSized[Key keyConstraint, Value any](size uintptr) *HashMap[Key, Value] {
+func NewSized[Key comparable, Value any](size uintptr) *HashMap[Key, Value] {
 	m := &HashMap[Key, Value]{}
 	m.allocate(size)
 	m.setHasher()

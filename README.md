@@ -16,7 +16,7 @@ bug that can cause writes to be lost.***
 
 ## Usage
 
-Only Go built-in types beside any/interface{} are supported.
+Only Go comparable types are supported as keys.
 
 Set a value for a key in the map:
 
