@@ -46,29 +46,29 @@ Reading from the hash map in a thread-safe way is nearly as fast as reading from
 in an unsafe way and twice as fast as Go's `sync.Map`:
 
 ```
-BenchmarkReadHashMapUint-8                       2477167               481.8 ns/op
-BenchmarkReadHaxMapUint-8                        2354264               512.0 ns/op
-BenchmarkReadGoMapUintUnsafe-8                   3317725               355.6 ns/op
-BenchmarkReadGoMapUintMutex-8                      82105             14534 ns/op
-BenchmarkReadGoSyncMapUint-8                      980110              1273 ns/op
+BenchmarkReadHashMapUint-8                       2534198               480.4 ns/op
+BenchmarkReadHaxMapUint-8                        2350569               523.0 ns/op
+BenchmarkReadGoMapUintUnsafe-8                   3308552               367.4 ns/op
+BenchmarkReadGoMapUintMutex-8                      85701             13820 ns/op
+BenchmarkReadGoSyncMapUint-8                      981177              1234 ns/op
 ```
 
 Reading from the map while writes are happening:
 ```
-BenchmarkReadHashMapWithWritesUint-8             1855539               649.4 ns/op
-BenchmarkReadHaxMapWithWritesUint-8              1719477               672.6 ns/op
-BenchmarkReadGoSyncMapWithWritesUint-8            770605              1474 ns/op
+BenchmarkReadHashMapWithWritesUint-8             1852483               646.7 ns/op
+BenchmarkReadHaxMapWithWritesUint-8              1761938               680.3 ns/op
+BenchmarkReadGoSyncMapWithWritesUint-8            758544              1512 ns/op
 ```
 
 Write performance without any concurrent reads:
 
 ```
-BenchmarkWriteHashMapUint-8                        29740             45577 ns/op
-BenchmarkWriteGoMapMutexUint-8                    179068              6989 ns/op
-BenchmarkWriteGoSyncMapUint-8                      21388             54012 ns/op
+BenchmarkWriteHashMapUint-8                        30304             42174 ns/op
+BenchmarkWriteGoMapMutexUint-8                    174100              7223 ns/op
+BenchmarkWriteGoSyncMapUint-8                      24432             45512 ns/op
 ```
 
-The benchmarks were run with Golang 1.18.3 on Linux using `make benchmark`.
+The benchmarks were run with Golang 1.19.0 on Linux using `make benchmark`.
 
 ### Benefits over Golang's builtin map
 
