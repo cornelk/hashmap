@@ -130,7 +130,7 @@ func TestResize(t *testing.T) {
 		time.Sleep(time.Microsecond * 50)
 	}
 
-	assert.Equal(t, 34, m.FillRate())
+	assert.True(t, m.FillRate() > 30)
 
 	for i := uintptr(0); i < itemCount; i++ {
 		value, ok := m.Get(i)
