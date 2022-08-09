@@ -1,16 +1,16 @@
 package hashmap
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+)
 
 func TestListNew(t *testing.T) {
 	l := NewList[uintptr, uintptr]()
-	n := l.First()
-	if n != nil {
-		t.Error("First item of list should be nil.")
-	}
+	node := l.First()
+	assert.Nil(t, node)
 
-	n = l.head.Next()
-	if n != nil {
-		t.Error("Next element of empty list should be nil.")
-	}
+	node = l.head.Next()
+	assert.Nil(t, node)
 }
