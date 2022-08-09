@@ -50,6 +50,9 @@ linters:
     - whitespace # detects leading and trailing whitespace
 
 linters-settings:
+  gocritic:
+    disabled-checks:
+      - newDeref
   govet:
     disable:
       - unsafeptr
