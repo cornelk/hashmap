@@ -76,8 +76,6 @@ The benchmarks were run with Golang 1.18.3 on Linux using `make benchmark`.
 
 * thread-safe access without need of a(n extra) mutex
 
-* [Compare-and-swap](https://en.wikipedia.org/wiki/Compare-and-swap) access for values
-
 ### Benefits over [Golang's sync.Map](https://golang.org/pkg/sync/#Map)
 
 * Faster
