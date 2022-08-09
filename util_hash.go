@@ -68,6 +68,16 @@ func (m *HashMap[Key, Value]) qwordHasher(key Key) uintptr {
 	return uintptr(xxhash.Sum64(buf))
 }
 
+func (m *HashMap[Key, Value]) owordHasher(key Key) uintptr {
+	bh := reflect.SliceHeader{
+		Data: uintptr(unsafe.Pointer(&key)),
+		Len:  16,
+		Cap:  16,
+	}
+	buf := *(*[]byte)(unsafe.Pointer(&bh))
+	return uintptr(xxhash.Sum64(buf))
+}
+
 // used in unit test to test collision support.
 func (m *HashMap[Key, Value]) staticHasher(key Key) uintptr {
 	return 4 // chosen by fair dice roll. guaranteed to be random.

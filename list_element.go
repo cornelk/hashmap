@@ -37,8 +37,3 @@ func (e *ListElement[Key, Value]) Previous() *ListElement[Key, Value] {
 func (e *ListElement[Key, Value]) setValue(value *Value) {
 	e.value.Store(value)
 }
-
-// casValue compares and swaps the values of the item.
-func (e *ListElement[Key, Value]) casValue(from, to *Value) bool {
-	return e.value.CompareAndSwap(from, to)
-}

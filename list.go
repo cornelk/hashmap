@@ -12,17 +12,14 @@ type List[Key keyConstraint, Value any] struct {
 
 // NewList returns an initialized list.
 func NewList[Key keyConstraint, Value any]() *List[Key, Value] {
-	return &List[Key, Value]{head: &ListElement[Key, Value]{}}
+	return &List[Key, Value]{
+		head: &ListElement[Key, Value]{},
+	}
 }
 
 // Len returns the number of elements within the list.
 func (l *List[Key, Value]) Len() int {
 	return int(l.count.Load())
-}
-
-// Head returns the head item of the list.
-func (l *List[Key, Value]) Head() *ListElement[Key, Value] {
-	return l.head
 }
 
 // First returns the first item of the list.
@@ -78,19 +75,6 @@ func (l *List[Key, Value]) Delete(element *ListElement[Key, Value]) {
 	}
 
 	l.count.Add(^uintptr(0)) // decrease counter
-}
-
-// Cas compares and swaps the value of an item in the list.
-func (l *List[Key, Value]) Cas(element *ListElement[Key, Value], oldValue *Value, searchStart *ListElement[Key, Value]) bool {
-	_, found, _ := l.search(searchStart, element)
-	if found == nil { // no existing item found
-		return false
-	}
-
-	if found.casValue(oldValue, element.value.Load()) {
-		return true
-	}
-	return false
 }
 
 func (l *List[Key, Value]) search(searchStart, item *ListElement[Key, Value]) (left, found, right *ListElement[Key, Value]) {

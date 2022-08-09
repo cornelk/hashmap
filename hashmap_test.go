@@ -58,6 +58,72 @@ func TestSetUint8(t *testing.T) {
 	assert.Equal(t, 200, value)
 }
 
+func TestSetUint16(t *testing.T) {
+	t.Parallel()
+	m := New[uint16, int]()
+
+	m.Set(1, 128) // insert
+	value, ok := m.Get(1)
+	require.True(t, ok)
+	assert.Equal(t, 128, value)
+
+	m.Set(2, 200) // insert
+	assert.Equal(t, 2, m.Len())
+	value, ok = m.Get(2)
+	require.True(t, ok)
+	assert.Equal(t, 200, value)
+}
+
+func TestSetFloat32(t *testing.T) {
+	t.Parallel()
+	m := New[float32, int]()
+
+	m.Set(1.1, 128) // insert
+	value, ok := m.Get(1.1)
+	require.True(t, ok)
+	assert.Equal(t, 128, value)
+
+	m.Set(2.2, 200) // insert
+	assert.Equal(t, 2, m.Len())
+	value, ok = m.Get(2.2)
+	require.True(t, ok)
+	assert.Equal(t, 200, value)
+}
+
+func TestSetInt64(t *testing.T) {
+	t.Parallel()
+	m := New[int64, int]()
+
+	m.Set(1, 128) // insert
+	value, ok := m.Get(1)
+	require.True(t, ok)
+	assert.Equal(t, 128, value)
+
+	m.Set(2, 200) // insert
+	assert.Equal(t, 2, m.Len())
+	value, ok = m.Get(2)
+	require.True(t, ok)
+	assert.Equal(t, 200, value)
+}
+
+func TestSetComplex128(t *testing.T) {
+	t.Parallel()
+	m := New[complex128, int]()
+
+	comp1 := complex(float64(5), float64(10))
+	m.Set(comp1, 128) // insert
+	value, ok := m.Get(comp1)
+	require.True(t, ok)
+	assert.Equal(t, 128, value)
+
+	comp2 := complex(float64(5), float64(20))
+	m.Set(comp2, 200) // insert
+	assert.Equal(t, 2, m.Len())
+	value, ok = m.Get(comp2)
+	require.True(t, ok)
+	assert.Equal(t, 200, value)
+}
+
 func TestInsert(t *testing.T) {
 	t.Parallel()
 	m := New[int, string]()

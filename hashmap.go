@@ -17,7 +17,8 @@ const DefaultSize = 8
 const MaxFillRate = 50
 
 type keyConstraint interface {
-	string | int | int8 | int16 | int32 | int64 | uint | uint8 | uint16 | uint32 | uint64 | uintptr
+	string | int | int8 | int16 | int32 | int64 | uint | uint8 | uint16 | uint32 | uint64 | uintptr |
+		float32 | float64 | complex64 | complex128
 }
 
 // HashMap implements a read optimized hash map.
@@ -170,26 +171,6 @@ func (m *HashMap[Key, Value]) Set(key Key, value Value) {
 	m.insertElement(element, true)
 }
 
-// Cas performs a compare and swap operation. It sets the new value of the specified key if the old value matches.
-// TODO: not working currently
-// func (m *HashMap[Key, Value]) Cas(key Key, from, to Value) bool {
-// 	hash := getKeyHash(key)
-// 	store := m.store.Load()
-// 	existing := store.item(hash)
-// 	if existing == nil {
-// 		return false
-// 	}
-//
-// 	element := &ListElement[Key, Value]{
-// 		key:     key,
-// 		keyHash: hash,
-// 	}
-// 	element.value.Store(&to)
-//
-// 	list := m.linkedList.Load()
-// 	return list.Cas(element, from, existing)
-// }
-
 // Grow resizes the hashmap to a new size, the size gets rounded up to next power of 2.
 // To double the size of the hashmap use newSize 0.
 // This function returns immediately, the resize operation is done in a goroutine.
@@ -258,10 +239,12 @@ func (m *HashMap[Key, Value]) setHasher() {
 		m.hasher = m.byteHasher
 	case int16, uint16:
 		m.hasher = m.wordHasher
-	case int32, uint32:
+	case int32, uint32, float32:
 		m.hasher = m.dwordHasher
-	case int64, uint64:
+	case int64, uint64, float64, complex64:
 		m.hasher = m.qwordHasher
+	case complex128:
+		m.hasher = m.owordHasher
 	default:
 		panic(fmt.Errorf("unsupported key type %T", key))
 	}
