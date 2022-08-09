@@ -12,6 +12,14 @@ type store[Key keyConstraint, Value any] struct {
 	index     []*ListElement[Key, Value] // storage for the slice for the garbage collector to not clean it up
 }
 
+// item returns the item for the given hashed key.
+func (s *store[Key, Value]) item(hashedKey uintptr) *ListElement[Key, Value] {
+	index := hashedKey >> s.keyShifts
+	ptr := (*unsafe.Pointer)(unsafe.Pointer(uintptr(s.array) + index*intSizeBytes))
+	item := (*ListElement[Key, Value])(atomic.LoadPointer(ptr))
+	return item
+}
+
 // adds an item to the index if needed and returns the new item counter if it changed, otherwise 0.
 func (s *store[Key, Value]) addItem(item *ListElement[Key, Value]) uintptr {
 	index := item.keyHash >> s.keyShifts

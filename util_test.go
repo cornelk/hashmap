@@ -25,7 +25,7 @@ func TestLog2(t *testing.T) {
 
 func TestKeyHash(t *testing.T) {
 	type testFixture struct {
-		input  interface{}
+		input  any
 		output uintptr
 	}
 	var fixtures = []testFixture{

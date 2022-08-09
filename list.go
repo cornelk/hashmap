@@ -17,25 +17,16 @@ func NewList[Key keyConstraint, Value any]() *List[Key, Value] {
 
 // Len returns the number of elements within the list.
 func (l *List[Key, Value]) Len() int {
-	if l == nil { // not initialized yet?
-		return 0
-	}
 	return int(l.count.Load())
 }
 
 // Head returns the head item of the list.
 func (l *List[Key, Value]) Head() *ListElement[Key, Value] {
-	if l == nil { // not initialized yet?
-		return nil
-	}
 	return l.head
 }
 
 // First returns the first item of the list.
 func (l *List[Key, Value]) First() *ListElement[Key, Value] {
-	if l == nil { // not initialized yet?
-		return nil
-	}
 	return l.head.Next()
 }
 

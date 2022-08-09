@@ -13,7 +13,7 @@ type customHashFunc func(b []byte) uint64
 var customHash customHashFunc
 
 // getKeyHash returns a hash for the key. Only string and number types are supported.
-func getKeyHash(key interface{}) uintptr {
+func getKeyHash(key any) uintptr {
 	switch x := key.(type) {
 	case string:
 		return getStringHash(x)

@@ -11,7 +11,7 @@ import (
 )
 
 // getKeyHash returns a hash for the key. Only string and number types are supported.
-func getKeyHash(key interface{}) uintptr {
+func getKeyHash(key any) uintptr {
 	switch x := key.(type) {
 	case string:
 		return uintptr(xxhash.Sum64String(x))

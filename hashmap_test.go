@@ -14,11 +14,8 @@ import (
 func TestNew(t *testing.T) {
 	t.Parallel()
 
-	m1 := New[uintptr, uintptr]()
-	assert.Zero(t, m1.Len())
-
-	m2 := HashMap[uintptr, uintptr]{}
-	assert.Zero(t, m2.Len())
+	m := New[uintptr, uintptr]()
+	assert.Zero(t, m.Len())
 }
 
 func TestSet(t *testing.T) {
@@ -79,7 +76,7 @@ func TestGetNonExistingItem(t *testing.T) {
 	m := New[int, string]()
 	value, ok := m.Get(1)
 	require.False(t, ok)
-	assert.Nil(t, value)
+	assert.Equal(t, "", value)
 }
 
 func TestGrow(t *testing.T) {
@@ -192,7 +189,7 @@ func TestIterator(t *testing.T) {
 
 	items := map[int]string{}
 	for item := range m.Iter() {
-		items[item.Key] = item.Value
+		items[item.Key] = *item.Value
 	}
 
 	assert.Len(t, items, itemCount)
@@ -239,7 +236,7 @@ func TestIterator(t *testing.T) {
 // func TestCompareAndSwap(t *testing.T) {
 // 	tests := []struct {
 // 		name string
-// 		key  interface{}
+// 		key  any
 // 	}{
 // 		{name: "string", key: "animal"},
 // 	}
@@ -279,7 +276,7 @@ func TestIterator(t *testing.T) {
 // func TestAPICounter(t *testing.T) {
 // 	tests := []struct {
 // 		name string
-// 		key  func(string) interface{}
+// 		key  func(string) any
 // 	}{
 // 		{name: "string", key: s2sKey},
 // 	}
