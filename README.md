@@ -16,26 +16,25 @@ bug that can cause writes to be lost.***
 
 ## Usage
 
-The supported key types are string, int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64, uintptr and
-pointer variations of them.
+The supported key types are string, int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64, uintptr.
 
 Set a value for a key in the map:
 
 ```
-m := &HashMap{}
+m := New[string, int]()
 m.Set("amount", 123)
 ```
 
 Read a value for a key from the map:
 ```
-amount, ok := m.Get("amount")
+value, ok := m.Get("amount")
 ```
 
 Use the map to count URL requests:
 ```
+m := New[string, *int64]()
 var i int64
-actual, _ := m.GetOrInsert("api/123", &i)
-counter := (actual).(*int64)
+counter, _ := m.GetOrInsert("api/123", &i)
 atomic.AddInt64(counter, 1) // increase counter
 ...
 count := atomic.LoadInt64(counter) // read counter
@@ -47,31 +46,25 @@ Reading from the hash map in a thread-safe way is nearly as fast as reading from
 in an unsafe way and twice as fast as Go's `sync.Map`:
 
 ```
-BenchmarkReadHashMapUint-8                	 2587822	       474.1 ns/op
-BenchmarkReadGoMapUintUnsafe-8            	 3801950	       307.9 ns/op
-BenchmarkReadGoMapUintMutex-8             	   87267	     13395 ns/op
-BenchmarkReadGoSyncMapUint-8              	  999242	      1225 ns/op
-```
-
-If your keys for the map are already hashes, no extra hashing needs to be done by the map:
-
-```
-BenchmarkReadHashMapHashedKey-8           	 7971067	       150.5 ns/op
+BenchmarkReadHashMapUint-8                       1000000              1058 ns/op
+BenchmarkReadGoMapUintUnsafe-8                   3328401               357.9 ns/op
+BenchmarkReadGoMapUintMutex-8                      85222             14038 ns/op
+BenchmarkReadGoSyncMapUint-8                      980455              1267 ns/op
 ```
 
 Reading from the map while writes are happening:
 ```
-BenchmarkReadHashMapWithWritesUint-8      	 1948606	       612.7 ns/op
-BenchmarkReadGoMapWithWritesUintMutex-8   	   19899	     70450 ns/op
-BenchmarkReadGoSyncMapWithWritesUint-8    	  829714	      1469 ns/op
+BenchmarkReadHashMapWithWritesUint-8              913582              1299 ns/op
+BenchmarkReadGoMapWithWritesUintMutex-8            19507             68840 ns/op
+BenchmarkReadGoSyncMapWithWritesUint-8            789907              1503 ns/op
 ```
 
 Write performance without any concurrent reads:
 
 ```
-BenchmarkWriteHashMapUint-8               	   19418	     72122 ns/op
-BenchmarkWriteGoMapMutexUint-8            	  182530	      6462 ns/op
-BenchmarkWriteGoSyncMapUint-8             	   21607	     64894 ns/op
+BenchmarkWriteHashMapUint-8                        26350             51542 ns/op
+BenchmarkWriteGoMapMutexUint-8                    158374              7040 ns/op
+BenchmarkWriteGoSyncMapUint-8                      18879             64462 ns/op
 ```
 
 The benchmarks were run with Golang 1.18.3 on Linux using `make benchmark`.
@@ -84,13 +77,9 @@ The benchmarks were run with Golang 1.18.3 on Linux using `make benchmark`.
 
 * [Compare-and-swap](https://en.wikipedia.org/wiki/Compare-and-swap) access for values
 
-* Access functions for keys that are hashes and do not need to be hashed again
-
 ### Benefits over [Golang's sync.Map](https://golang.org/pkg/sync/#Map)
 
 * Faster
-
-* Access functions for keys that are hashes and do not need to be hashed again
 
 ## Technical details
 

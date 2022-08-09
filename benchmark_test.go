@@ -12,7 +12,7 @@ const benchmarkItemCount = 512
 func setupHashMap(b *testing.B) *HashMap[uintptr, uintptr] {
 	b.Helper()
 
-	m := &HashMap[uintptr, uintptr]{}
+	m := New[uintptr, uintptr]()
 	for i := uintptr(0); i < benchmarkItemCount; i++ {
 		m.Set(i, i)
 	}
@@ -24,7 +24,7 @@ func setupHashMap(b *testing.B) *HashMap[uintptr, uintptr] {
 func setupHashMapString(b *testing.B) (*HashMap[string, string], []string) {
 	b.Helper()
 
-	m := &HashMap[string, string]{}
+	m := New[string, string]()
 	keys := make([]string, benchmarkItemCount)
 	for i := 0; i < benchmarkItemCount; i++ {
 		s := strconv.Itoa(i)
@@ -279,7 +279,7 @@ func BenchmarkReadGoMapStringMutex(b *testing.B) {
 }
 
 func BenchmarkWriteHashMapUint(b *testing.B) {
-	m := &HashMap[uintptr, uintptr]{}
+	m := New[uintptr, uintptr]()
 
 	for n := 0; n < b.N; n++ {
 		for i := uintptr(0); i < benchmarkItemCount; i++ {
