@@ -221,26 +221,19 @@ func (m *HashMap[Key, Value]) String() string {
 	return buffer.String()
 }
 
-// Iter returns an iterator which can be used in a for range loop.
-// The order of the items is sorted by hash keys.
-func (m *HashMap[Key, Value]) Iter() <-chan KeyValue[Key, Value] {
-	ch := make(chan KeyValue[Key, Value]) // do not use a size here since items can get added during iteration
+// Range calls f sequentially for each key and value present in the map.
+// If f returns false, range stops the iteration.
+func (m *HashMap[Key, Value]) Range(f func(Key, Value) bool) {
+	list := m.linkedList.Load()
+	item := list.First()
 
-	go func() {
-		list := m.linkedList.Load()
-		item := list.First()
-		for item != nil {
-			value := item.Value()
-			ch <- KeyValue[Key, Value]{
-				Key:   item.key,
-				Value: value,
-			}
-			item = item.Next()
+	for item != nil {
+		value := item.Value()
+		if !f(item.key, value) {
+			return
 		}
-		close(ch)
-	}()
-
-	return ch
+		item = item.Next()
+	}
 }
 
 func (m *HashMap[Key, Value]) allocate(newSize uintptr) {

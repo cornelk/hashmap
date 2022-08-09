@@ -190,22 +190,27 @@ func TestDelete(t *testing.T) {
 	assert.Equal(t, 0, m.Len())
 }
 
-func TestIterator(t *testing.T) {
+func TestRange(t *testing.T) {
 	t.Parallel()
 	m := New[int, string]()
 
-	iter := m.Iter()
-	assert.Equal(t, 0, len(iter))
+	items := map[int]string{}
+	m.Range(func(key int, value string) bool {
+		items[key] = value
+		return true
+	})
+	assert.Equal(t, 0, len(items))
 
 	itemCount := 16
 	for i := itemCount; i > 0; i-- {
 		m.Set(i, strconv.Itoa(i))
 	}
 
-	items := map[int]string{}
-	for item := range m.Iter() {
-		items[item.Key] = item.Value
-	}
+	items = map[int]string{}
+	m.Range(func(key int, value string) bool {
+		items[key] = value
+		return true
+	})
 
 	assert.Len(t, items, itemCount)
 	for i := 1; i <= itemCount; i++ {
