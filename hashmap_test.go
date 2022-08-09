@@ -13,7 +13,6 @@ import (
 
 func TestNew(t *testing.T) {
 	t.Parallel()
-
 	m := New[uintptr, uintptr]()
 	assert.Zero(t, m.Len())
 }
@@ -189,7 +188,7 @@ func TestIterator(t *testing.T) {
 
 	items := map[int]string{}
 	for item := range m.Iter() {
-		items[item.Key] = *item.Value
+		items[item.Key] = item.Value
 	}
 
 	assert.Len(t, items, itemCount)
@@ -201,126 +200,22 @@ func TestIterator(t *testing.T) {
 	}
 }
 
-//
-//
-// func TestCompareAndSwapHashedKey(t *testing.T) {
-// 	m := &HashMap{}
-// 	elephant := &Animal{"elephant"}
-// 	monkey := &Animal{"monkey"}
-//
-// 	m.SetHashedKey(1<<(strconv.IntSize-2), elephant)
-// 	if m.Len() != 1 {
-// 		t.Error("map should contain exactly one element.")
-// 	}
-// 	if !m.CasHashedKey(1<<(strconv.IntSize-2), elephant, monkey) {
-// 		t.Error("Cas should success if expectation met")
-// 	}
-// 	if m.Len() != 1 {
-// 		t.Error("map should contain exactly one element.")
-// 	}
-// 	if m.CasHashedKey(1<<(strconv.IntSize-2), elephant, monkey) {
-// 		t.Error("Cas should fail if expectation didn't meet")
-// 	}
-// 	if m.Len() != 1 {
-// 		t.Error("map should contain exactly one element.")
-// 	}
-// 	item, ok := m.GetHashedKey(1 << (strconv.IntSize - 2))
-// 	if !ok {
-// 		t.Error("ok should be true for item stored within the map.")
-// 	}
-// 	if item != monkey {
-// 		t.Error("wrong item returned.")
-// 	}
-// }
-//
+// TODO: not working currently
 // func TestCompareAndSwap(t *testing.T) {
-// 	tests := []struct {
-// 		name string
-// 		key  any
-// 	}{
-// 		{name: "string", key: "animal"},
-// 	}
-// 	for _, tt := range tests {
-// 		t.Run(tt.name, func(t *testing.T) {
-// 			m := &HashMap{}
-// 			ok := m.CasHashedKey(uintptr(0), nil, nil)
-// 			if ok {
-// 				t.Error("empty map should not return an item.")
-// 			}
+// 	t.Parallel()
+// 	m := New[int, string]()
+// 	elephant := "elephant"
+// 	monkey := "monkey"
 //
-// 			elephant := &Animal{"elephant"}
-// 			monkey := &Animal{"monkey"}
+// 	m.Set(1, elephant)
+// 	require.True(t, m.Cas(1, elephant, monkey))
+// 	require.False(t, m.Cas(1, elephant, monkey))
 //
-// 			m.Set(tt.key, elephant)
-// 			if m.Len() != 1 {
-// 				t.Error("map should contain exactly one element.")
-// 			}
-// 			if !m.Cas(tt.key, elephant, monkey) {
-// 				t.Error("Cas should success if expectation met")
-// 			}
-// 			if m.Cas(tt.key, elephant, monkey) {
-// 				t.Error("Cas should fail if expectation didn't meet")
-// 			}
-// 			item, ok := m.Get(tt.key)
-// 			if !ok {
-// 				t.Error("ok should be true for item stored within the map.")
-// 			}
-// 			if item != monkey {
-// 				t.Error("wrong item returned.")
-// 			}
-// 		})
-// 	}
+// 	item, ok := m.Get(1)
+// 	require.True(t, ok)
+// 	assert.Equal(t, monkey, item)
 // }
-//
-// // TestAPICounter shows how to use the hashmap to count REST server API calls.
-// func TestAPICounter(t *testing.T) {
-// 	tests := []struct {
-// 		name string
-// 		key  func(string) any
-// 	}{
-// 		{name: "string", key: s2sKey},
-// 	}
-// 	for _, tt := range tests {
-// 		t.Run(tt.name, func(t *testing.T) {
-// 			m := &HashMap{}
-//
-// 			for i := 0; i < 100; i++ {
-// 				s := fmt.Sprintf("/api%d/", i%4)
-//
-// 				for {
-// 					counter := int64(0)
-// 					actual, _ := m.GetOrInsert(tt.key(s), &counter)
-// 					c := actual.(*int64)
-// 					atomic.AddInt64(c, 1)
-// 					break
-// 				}
-// 			}
-//
-// 			s := fmt.Sprintf("/api%d/", 0)
-// 			val, _ := m.Get(tt.key(s))
-// 			c := val.(*int64)
-// 			if *c != 25 {
-// 				t.Error("wrong API call count.")
-// 			}
-// 		})
-// 	}
-// }
-//
-// func TestExample(t *testing.T) {
-// 	m := &HashMap{}
-// 	i := 123
-// 	m.Set("amount", i)
-//
-// 	j, ok := m.Get("amount")
-// 	if !ok {
-// 		t.Fail()
-// 	}
-//
-// 	if i != j {
-// 		t.Fail()
-// 	}
-// }
-//
+
 // // nolint: funlen, gocognit
 // func TestHashMap_parallel(t *testing.T) {
 // 	max := 10

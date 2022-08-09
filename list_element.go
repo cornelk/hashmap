@@ -19,8 +19,8 @@ type ListElement[Key keyConstraint, Value any] struct {
 }
 
 // Value returns the value of the list item.
-func (e *ListElement[Key, Value]) Value() *Value {
-	return e.value.Load()
+func (e *ListElement[Key, Value]) Value() Value {
+	return *e.value.Load()
 }
 
 // Next returns the item on the right.

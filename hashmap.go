@@ -32,7 +32,7 @@ type HashMap[Key keyConstraint, Value any] struct {
 // KeyValue represents a key/value that is returned by the iterator.
 type KeyValue[Key keyConstraint, Value any] struct {
 	Key   Key
-	Value *Value
+	Value Value
 }
 
 // New returns a new HashMap instance.
@@ -64,7 +64,7 @@ func (m *HashMap[Key, Value]) Get(key Key) (Value, bool) {
 	// inline HashMap.searchItem()
 	for element != nil {
 		if element.keyHash == hash && element.key == key {
-			return *element.Value(), true
+			return element.Value(), true
 		}
 
 		if element.keyHash > hash {
@@ -79,7 +79,7 @@ func (m *HashMap[Key, Value]) Get(key Key) (Value, bool) {
 // GetOrInsert returns the existing value for the key if present.
 // Otherwise, it stores and returns the given value.
 // The returned bool is true if the value was loaded, false if stored.
-func (m *HashMap[Key, Value]) GetOrInsert(key Key, value Value) (actual *Value, loaded bool) {
+func (m *HashMap[Key, Value]) GetOrInsert(key Key, value Value) (Value, bool) {
 	hash := getKeyHash(key)
 	var newElement *ListElement[Key, Value]
 
@@ -89,7 +89,7 @@ func (m *HashMap[Key, Value]) GetOrInsert(key Key, value Value) (actual *Value, 
 
 		for element != nil {
 			if element.keyHash == hash && element.key == key {
-				actual = element.Value()
+				actual := element.Value()
 				return actual, true
 			}
 
@@ -109,7 +109,7 @@ func (m *HashMap[Key, Value]) GetOrInsert(key Key, value Value) (actual *Value, 
 		}
 
 		if m.insertElement(newElement, false) {
-			return &value, false
+			return value, false
 		}
 	}
 }
@@ -124,17 +124,13 @@ func (m *HashMap[Key, Value]) FillRate() int {
 
 // Del deletes the key from the map and returns whether the key was deleted.
 func (m *HashMap[Key, Value]) Del(key Key) bool {
-	list := m.linkedList.Load()
-	if list == nil {
-		return false
-	}
-
 	hash := getKeyHash(key)
 
 	var element *ListElement[Key, Value]
 
 	store := m.store.Load()
 	element = store.item(hash)
+	list := m.linkedList.Load()
 
 	for ; element != nil; element = element.Next() {
 		if element.keyHash == hash && element.key == key {
@@ -178,26 +174,24 @@ func (m *HashMap[Key, Value]) Set(key Key, value Value) {
 }
 
 // Cas performs a compare and swap operation. It sets the new value of the specified key if the old value matches.
-func (m *HashMap[Key, Value]) Cas(key Key, from, to Value) bool {
-	hash := getKeyHash(key)
-	store := m.store.Load()
-	existing := store.item(hash)
-	if existing == nil {
-		return false
-	}
-
-	list := m.linkedList.Load()
-	if list == nil {
-		return false
-	}
-
-	element := &ListElement[Key, Value]{
-		key:     key,
-		keyHash: hash,
-	}
-	element.value.Store(&to)
-	return list.Cas(element, &from, existing)
-}
+// TODO: not working currently
+// func (m *HashMap[Key, Value]) Cas(key Key, from, to Value) bool {
+// 	hash := getKeyHash(key)
+// 	store := m.store.Load()
+// 	existing := store.item(hash)
+// 	if existing == nil {
+// 		return false
+// 	}
+//
+// 	element := &ListElement[Key, Value]{
+// 		key:     key,
+// 		keyHash: hash,
+// 	}
+// 	element.value.Store(&to)
+//
+// 	list := m.linkedList.Load()
+// 	return list.Cas(element, from, existing)
+// }
 
 // Grow resizes the hashmap to a new size, the size gets rounded up to next power of 2.
 // To double the size of the hashmap use newSize 0.
@@ -212,9 +206,6 @@ func (m *HashMap[Key, Value]) Grow(newSize uintptr) {
 // String returns the map as a string, only hashed keys are printed.
 func (m *HashMap[Key, Value]) String() string {
 	list := m.linkedList.Load()
-	if list == nil {
-		return "[]"
-	}
 
 	buffer := bytes.NewBufferString("")
 	buffer.WriteRune('[')
@@ -240,11 +231,6 @@ func (m *HashMap[Key, Value]) Iter() <-chan KeyValue[Key, Value] {
 
 	go func() {
 		list := m.linkedList.Load()
-		if list == nil {
-			close(ch)
-			return
-		}
-
 		item := list.First()
 		for item != nil {
 			value := item.Value()
@@ -280,19 +266,19 @@ func (m *HashMap[Key, Value]) isResizeNeeded(store *store[Key, Value], count uin
 }
 
 /* The Golang 1.10.1 compiler does not inline this function well
-func (m *HashMap[Key, Value]) searchItem(item *ListElement[Key, Value], key Key, keyHash uintptr) (*Value, bool) {
+func (m *HashMap[Key, Value]) searchItem(item *ListElement[Key, Value], key Key, keyHash uintptr) (Value, bool) {
 	for item != nil {
 		if item.keyHash == keyHash && item.key == key {
 			return item.Value(), true
 		}
 
 		if item.keyHash > keyHash {
-			return nil, false
+			return *new(Value), false
 		}
 
 		item = item.Next()
 	}
-	return nil, false
+	return *new(Value), false
 }
 */
 
@@ -373,13 +359,13 @@ func (m *HashMap[Key, Value]) grow(newSize uintptr, loop bool) {
 		m.fillIndexItems(newData) // make sure that the new index is up to date with the current state of the linked list
 
 		if !loop {
-			break
+			return
 		}
 
 		// check if a new resize needs to be done already
 		count := uintptr(m.Len())
 		if !m.isResizeNeeded(newData, count) {
-			break
+			return
 		}
 		newSize = 0 // 0 means double the current size
 	}
@@ -387,9 +373,6 @@ func (m *HashMap[Key, Value]) grow(newSize uintptr, loop bool) {
 
 func (m *HashMap[Key, Value]) fillIndexItems(store *store[Key, Value]) {
 	list := m.linkedList.Load()
-	if list == nil {
-		return
-	}
 	first := list.First()
 	item := first
 	lastIndex := uintptr(0)
