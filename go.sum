@@ -1,5 +1,7 @@
 github.com/OneOfOne/xxhash v1.2.2 h1:KMrpdQIwFcEqXDklaen+P1axHaj9BSKzvpUUfnHldSE=
 github.com/OneOfOne/xxhash v1.2.2/go.mod h1:HSdplMjZKSmBqAxg5vPj2TmRDmfkzw+cTzAElWljhcU=
+github.com/alphadose/haxmap v0.1.1-0.20220808155550-bc3b9a6adfc4 h1:E78W2LuJFjDKpr0a0xFK9w0rawO4wtmTdcbRX5H11mg=
+github.com/alphadose/haxmap v0.1.1-0.20220808155550-bc3b9a6adfc4/go.mod h1:68nFwlFwh/HEilKSdlNOKnd1PwOy8EUnKUtZH2TdVb8=
 github.com/cespare/xxhash v1.1.0 h1:a6HrQnmkObjyL+Gs60czilIUGqrzKutQD6XZog3p+ko=
 github.com/cespare/xxhash v1.1.0/go.mod h1:XrSqR1VqqWfGrhpAt58auRo0WTKS1nRRg3ghfAqPWnc=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=

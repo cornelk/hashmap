@@ -5,6 +5,8 @@ import (
 	"sync"
 	"sync/atomic"
 	"testing"
+
+	"github.com/alphadose/haxmap"
 )
 
 const benchmarkItemCount = 512
@@ -18,6 +20,16 @@ func setupHashMap(b *testing.B) *HashMap[uintptr, uintptr] {
 	}
 
 	b.ResetTimer()
+	return m
+}
+
+func setupHaxMap(b *testing.B) *haxmap.HashMap[uintptr, uintptr] {
+	b.Helper()
+
+	m := haxmap.New[uintptr, uintptr]()
+	for i := uintptr(0); i < benchmarkItemCount; i++ {
+		m.Set(i, i)
+	}
 	return m
 }
 
@@ -139,6 +151,46 @@ func BenchmarkReadHashMapInterface(b *testing.B) {
 				j, _ := m.Get(i)
 				if j != i {
 					b.Fail()
+				}
+			}
+		}
+	})
+}
+
+func BenchmarkReadHaxMapUint(b *testing.B) {
+	m := setupHaxMap(b)
+
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			for i := uintptr(0); i < benchmarkItemCount; i++ {
+				j, _ := m.Get(i)
+				if j != i {
+					b.Fail()
+				}
+			}
+		}
+	})
+}
+
+func BenchmarkReadHaxMapWithWritesUint(b *testing.B) {
+	m := setupHaxMap(b)
+	var writer uintptr
+
+	b.RunParallel(func(pb *testing.PB) {
+		// use 1 thread as writer
+		if atomic.CompareAndSwapUintptr(&writer, 0, 1) {
+			for pb.Next() {
+				for i := uintptr(0); i < benchmarkItemCount; i++ {
+					m.Set(i, i)
+				}
+			}
+		} else {
+			for pb.Next() {
+				for i := uintptr(0); i < benchmarkItemCount; i++ {
+					j, _ := m.Get(i)
+					if j != i {
+						b.Fail()
+					}
 				}
 			}
 		}

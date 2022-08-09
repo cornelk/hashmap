@@ -46,25 +46,26 @@ Reading from the hash map in a thread-safe way is nearly as fast as reading from
 in an unsafe way and twice as fast as Go's `sync.Map`:
 
 ```
-BenchmarkReadHashMapUint-8                       2542633               480.2 ns/op
-BenchmarkReadGoMapUintUnsafe-8                   3314827               357.8 ns/op
-BenchmarkReadGoMapUintMutex-8                      85088             14003 ns/op
-BenchmarkReadGoSyncMapUint-8                      961533              1276 ns/op
+BenchmarkReadHashMapUint-8                       2477167               481.8 ns/op
+BenchmarkReadHaxMapUint-8                        2354264               512.0 ns/op
+BenchmarkReadGoMapUintUnsafe-8                   3317725               355.6 ns/op
+BenchmarkReadGoMapUintMutex-8                      82105             14534 ns/op
+BenchmarkReadGoSyncMapUint-8                      980110              1273 ns/op
 ```
 
 Reading from the map while writes are happening:
 ```
-BenchmarkReadHashMapWithWritesUint-8             1847887               652.3 ns/op
-BenchmarkReadGoMapWithWritesUintMutex-8            21160             65015 ns/op
-BenchmarkReadGoSyncMapWithWritesUint-8            786846              1489 ns/op
+BenchmarkReadHashMapWithWritesUint-8             1855539               649.4 ns/op
+BenchmarkReadHaxMapWithWritesUint-8              1719477               672.6 ns/op
+BenchmarkReadGoSyncMapWithWritesUint-8            770605              1474 ns/op
 ```
 
 Write performance without any concurrent reads:
 
 ```
-BenchmarkWriteHashMapUint-8                        27554             44950 ns/op
-BenchmarkWriteGoMapMutexUint-8                    163479              6831 ns/op
-BenchmarkWriteGoSyncMapUint-8                      22702             58090 ns/op
+BenchmarkWriteHashMapUint-8                        29740             45577 ns/op
+BenchmarkWriteGoMapMutexUint-8                    179068              6989 ns/op
+BenchmarkWriteGoSyncMapUint-8                      21388             54012 ns/op
 ```
 
 The benchmarks were run with Golang 1.18.3 on Linux using `make benchmark`.
