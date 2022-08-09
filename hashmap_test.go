@@ -17,7 +17,7 @@ func TestNew(t *testing.T) {
 	assert.Zero(t, m.Len())
 }
 
-func TestSet(t *testing.T) {
+func TestSetString(t *testing.T) {
 	t.Parallel()
 	m := New[int, string]()
 	elephant := "elephant"
@@ -40,6 +40,22 @@ func TestSet(t *testing.T) {
 	value, ok = m.Get(2)
 	require.True(t, ok)
 	assert.Equal(t, elephant, value)
+}
+
+func TestSetUint8(t *testing.T) {
+	t.Parallel()
+	m := New[uint8, int]()
+
+	m.Set(1, 128) // insert
+	value, ok := m.Get(1)
+	require.True(t, ok)
+	assert.Equal(t, 128, value)
+
+	m.Set(2, 200) // insert
+	assert.Equal(t, 2, m.Len())
+	value, ok = m.Get(2)
+	require.True(t, ok)
+	assert.Equal(t, 200, value)
 }
 
 func TestInsert(t *testing.T) {
@@ -133,12 +149,12 @@ func TestStringer(t *testing.T) {
 	assert.Equal(t, "[]", m.String())
 
 	m.Set(1, elephant)
-	hashedKey0 := getKeyHash(1)
+	hashedKey0 := m.hasher(1)
 	expected := fmt.Sprintf("[%v]", hashedKey0)
 	assert.Equal(t, expected, m.String())
 
 	m.Set(2, monkey)
-	hashedKey1 := getKeyHash(2)
+	hashedKey1 := m.hasher(2)
 	if hashedKey0 < hashedKey1 {
 		expected = fmt.Sprintf("[%v,%v]", hashedKey0, hashedKey1)
 	} else {

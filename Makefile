@@ -9,7 +9,6 @@ benchmark: ## run benchmarks
 
 test: ## run tests
 	go test -race ./...
-	go test -tags customhash -race -run TestInsertCollision .
 
 test-coverage: ## run unit tests and create test coverage
 	go test ./... -coverprofile .testCoverage -covermode=atomic -coverpkg=./...

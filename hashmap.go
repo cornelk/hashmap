@@ -22,6 +22,7 @@ type keyConstraint interface {
 
 // HashMap implements a read optimized hash map.
 type HashMap[Key keyConstraint, Value any] struct {
+	hasher     func(Key) uintptr
 	store      atomic.Pointer[store[Key, Value]] // pointer to a map instance that gets replaced if the map resizes
 	linkedList atomic.Pointer[List[Key, Value]]  // key sorted linked list of elements
 	// resizing marks a resizing operation in progress.
@@ -37,15 +38,14 @@ type KeyValue[Key keyConstraint, Value any] struct {
 
 // New returns a new HashMap instance.
 func New[Key keyConstraint, Value any]() *HashMap[Key, Value] {
-	m := &HashMap[Key, Value]{}
-	m.allocate(DefaultSize)
-	return m
+	return NewSized[Key, Value](DefaultSize)
 }
 
 // NewSized returns a new HashMap instance with a specific initialization size.
 func NewSized[Key keyConstraint, Value any](size uintptr) *HashMap[Key, Value] {
 	m := &HashMap[Key, Value]{}
 	m.allocate(size)
+	m.setHasher()
 	return m
 }
 
@@ -57,7 +57,7 @@ func (m *HashMap[Key, Value]) Len() int {
 
 // Get retrieves an element from the map under given hash key.
 func (m *HashMap[Key, Value]) Get(key Key) (Value, bool) {
-	hash := getKeyHash(key)
+	hash := m.hasher(key)
 	store := m.store.Load()
 	element := store.item(hash)
 
@@ -80,7 +80,7 @@ func (m *HashMap[Key, Value]) Get(key Key) (Value, bool) {
 // Otherwise, it stores and returns the given value.
 // The returned bool is true if the value was loaded, false if stored.
 func (m *HashMap[Key, Value]) GetOrInsert(key Key, value Value) (Value, bool) {
-	hash := getKeyHash(key)
+	hash := m.hasher(key)
 	var newElement *ListElement[Key, Value]
 
 	for {
@@ -124,12 +124,9 @@ func (m *HashMap[Key, Value]) FillRate() int {
 
 // Del deletes the key from the map and returns whether the key was deleted.
 func (m *HashMap[Key, Value]) Del(key Key) bool {
-	hash := getKeyHash(key)
-
-	var element *ListElement[Key, Value]
-
+	hash := m.hasher(key)
 	store := m.store.Load()
-	element = store.item(hash)
+	element := store.item(hash)
 	list := m.linkedList.Load()
 
 	for ; element != nil; element = element.Next() {
@@ -151,7 +148,7 @@ func (m *HashMap[Key, Value]) Del(key Key) bool {
 // after the resize operation is finished.
 // Returns true if the item was inserted or false if it existed.
 func (m *HashMap[Key, Value]) Insert(key Key, value Value) bool {
-	hash := getKeyHash(key)
+	hash := m.hasher(key)
 	element := &ListElement[Key, Value]{
 		key:     key,
 		keyHash: hash,
@@ -164,7 +161,7 @@ func (m *HashMap[Key, Value]) Insert(key Key, value Value) bool {
 // If a resizing operation is happening concurrently while calling Set, the item might show up in the map
 // after the resize operation is finished.
 func (m *HashMap[Key, Value]) Set(key Key, value Value) {
-	hash := getKeyHash(key)
+	hash := m.hasher(key)
 	element := &ListElement[Key, Value]{
 		key:     key,
 		keyHash: hash,
@@ -253,6 +250,27 @@ func (m *HashMap[Key, Value]) allocate(newSize uintptr) {
 		if m.resizing.CompareAndSwap(0, 1) {
 			m.grow(newSize, false)
 		}
+	}
+}
+
+// setHasher sets the specialized hasher depending on the key type.
+func (m *HashMap[Key, Value]) setHasher() {
+	var key Key
+	switch any(key).(type) {
+	case string:
+		m.hasher = m.stringHasher
+	case int, uint, uintptr:
+		m.hasher = m.uintptrHasher
+	case int8, uint8:
+		m.hasher = m.byteHasher
+	case int16, uint16:
+		m.hasher = m.wordHasher
+	case int32, uint32:
+		m.hasher = m.dwordHasher
+	case int64, uint64:
+		m.hasher = m.qwordHasher
+	default:
+		panic(fmt.Errorf("unsupported key type %T", key))
 	}
 }
 

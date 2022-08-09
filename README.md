@@ -46,25 +46,25 @@ Reading from the hash map in a thread-safe way is nearly as fast as reading from
 in an unsafe way and twice as fast as Go's `sync.Map`:
 
 ```
-BenchmarkReadHashMapUint-8                       1000000              1058 ns/op
-BenchmarkReadGoMapUintUnsafe-8                   3328401               357.9 ns/op
-BenchmarkReadGoMapUintMutex-8                      85222             14038 ns/op
-BenchmarkReadGoSyncMapUint-8                      980455              1267 ns/op
+BenchmarkReadHashMapUint-8                       2542633               480.2 ns/op
+BenchmarkReadGoMapUintUnsafe-8                   3314827               357.8 ns/op
+BenchmarkReadGoMapUintMutex-8                      85088             14003 ns/op
+BenchmarkReadGoSyncMapUint-8                      961533              1276 ns/op
 ```
 
 Reading from the map while writes are happening:
 ```
-BenchmarkReadHashMapWithWritesUint-8              913582              1299 ns/op
-BenchmarkReadGoMapWithWritesUintMutex-8            19507             68840 ns/op
-BenchmarkReadGoSyncMapWithWritesUint-8            789907              1503 ns/op
+BenchmarkReadHashMapWithWritesUint-8             1847887               652.3 ns/op
+BenchmarkReadGoMapWithWritesUintMutex-8            21160             65015 ns/op
+BenchmarkReadGoSyncMapWithWritesUint-8            786846              1489 ns/op
 ```
 
 Write performance without any concurrent reads:
 
 ```
-BenchmarkWriteHashMapUint-8                        26350             51542 ns/op
-BenchmarkWriteGoMapMutexUint-8                    158374              7040 ns/op
-BenchmarkWriteGoSyncMapUint-8                      18879             64462 ns/op
+BenchmarkWriteHashMapUint-8                        27554             44950 ns/op
+BenchmarkWriteGoMapMutexUint-8                    163479              6831 ns/op
+BenchmarkWriteGoSyncMapUint-8                      22702             58090 ns/op
 ```
 
 The benchmarks were run with Golang 1.18.3 on Linux using `make benchmark`.
