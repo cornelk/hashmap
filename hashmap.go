@@ -277,23 +277,23 @@ func (m *HashMap[Key, Value]) searchItem(item *ListElement[Key, Value], key Key,
 */
 
 func (m *HashMap[Key, Value]) insertElement(element *ListElement[Key, Value], update bool) bool {
+	var existed, inserted bool
+
 	for {
 		store := m.store.Load()
 		existing := store.item(element.keyHash)
 		list := m.linkedList.Load()
 
 		if update {
-			if !list.AddOrUpdate(element, existing) {
-				continue // a concurrent add did interfere, try again
-			}
-		} else {
-			existed, inserted := list.Add(element, existing)
+			inserted = list.AddOrUpdate(element, existing)
+		} else if !inserted { // if retrying after insert during grow, do not add to list again
+			existed, inserted = list.Add(element, existing)
 			if existed {
 				return false
 			}
-			if !inserted {
-				continue
-			}
+		}
+		if !inserted {
+			continue // a concurrent add did interfere, try again
 		}
 
 		count := store.addItem(element)

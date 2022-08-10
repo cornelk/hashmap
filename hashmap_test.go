@@ -406,6 +406,8 @@ func TestHashMap_SetConcurrent(t *testing.T) {
 }
 
 func TestConcurrentInsertDelete(t *testing.T) {
+	t.Parallel()
+
 	for i := 0; i < 200; i++ {
 		el1 := &ListElement[int, int]{
 			key:     111,
@@ -448,13 +450,8 @@ func TestConcurrentInsertDelete(t *testing.T) {
 		}()
 		wg.Wait()
 
-		if le := l.Len(); le != 3 {
-			t.Error("l.Len() != 3", le)
-			return
-		}
-		if _, found, _ := l.search(nil, newIl); found == nil {
-			t.Error("newIl not found")
-			return
-		}
+		assert.Equal(t, 3, l.Len())
+		_, found, _ := l.search(nil, newIl)
+		assert.NotNil(t, found)
 	}
 }
