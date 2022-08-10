@@ -175,10 +175,10 @@ func TestGrow(t *testing.T) {
 		time.Sleep(time.Microsecond * 50)
 	}
 
-	d := m.store.Load()
+	store := m.store.Load()
 	log := int(math.Log2(64))
 	expectedSize := uintptr(strconv.IntSize - log)
-	assert.EqualValues(t, expectedSize, d.keyShifts)
+	assert.EqualValues(t, expectedSize, store.keyShifts)
 }
 
 func TestResize(t *testing.T) {

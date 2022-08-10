@@ -117,9 +117,9 @@ func (m *HashMap[Key, Value]) GetOrInsert(key Key, value Value) (Value, bool) {
 
 // FillRate returns the fill rate of the map as a percentage integer.
 func (m *HashMap[Key, Value]) FillRate() int {
-	data := m.store.Load()
-	count := int(data.count.Load())
-	l := len(data.index)
+	store := m.store.Load()
+	count := int(store.count.Load())
+	l := len(store.index)
 	return (count * 100) / l
 }
 
@@ -297,10 +297,13 @@ func (m *HashMap[Key, Value]) insertElement(element *ListElement[Key, Value], up
 		}
 
 		count := store.addItem(element)
-		if m.isResizeNeeded(store, count) {
-			if m.resizing.CompareAndSwap(0, 1) {
-				go m.grow(0, true)
-			}
+		currentStore := m.store.Load()
+		if store != currentStore { // retry insert in case of insert during grow
+			continue
+		}
+
+		if m.isResizeNeeded(store, count) && m.resizing.CompareAndSwap(0, 1) {
+			go m.grow(0, true)
 		}
 		return true
 	}
@@ -309,18 +312,18 @@ func (m *HashMap[Key, Value]) insertElement(element *ListElement[Key, Value], up
 // deleteElement deletes an element from index.
 func (m *HashMap[Key, Value]) deleteElement(element *ListElement[Key, Value]) {
 	for {
-		data := m.store.Load()
-		index := element.keyHash >> data.keyShifts
-		ptr := (*unsafe.Pointer)(unsafe.Pointer(uintptr(data.array) + index*intSizeBytes))
+		store := m.store.Load()
+		index := element.keyHash >> store.keyShifts
+		ptr := (*unsafe.Pointer)(unsafe.Pointer(uintptr(store.array) + index*intSizeBytes))
 
 		next := element.Next()
-		if next != nil && element.keyHash>>data.keyShifts != index {
+		if next != nil && element.keyHash>>store.keyShifts != index {
 			next = nil // do not set index to next item if it's not the same slice index
 		}
 		atomic.CompareAndSwapPointer(ptr, unsafe.Pointer(element), unsafe.Pointer(next))
 
-		currentData := m.store.Load()
-		if data == currentData { // check that no resize happened
+		currentStore := m.store.Load()
+		if store == currentStore { // check that no resize happened
 			break
 		}
 	}
@@ -330,9 +333,9 @@ func (m *HashMap[Key, Value]) grow(newSize uintptr, loop bool) {
 	defer m.resizing.CompareAndSwap(1, 0)
 
 	for {
-		currentData := m.store.Load()
+		currentStore := m.store.Load()
 		if newSize == 0 {
-			newSize = uintptr(len(currentData.index)) << 1
+			newSize = uintptr(len(currentStore.index)) << 1
 		} else {
 			newSize = roundUpPower2(newSize)
 		}
@@ -340,17 +343,17 @@ func (m *HashMap[Key, Value]) grow(newSize uintptr, loop bool) {
 		index := make([]*ListElement[Key, Value], newSize)
 		header := (*reflect.SliceHeader)(unsafe.Pointer(&index))
 
-		newData := &store[Key, Value]{
+		newStore := &store[Key, Value]{
 			keyShifts: strconv.IntSize - log2(newSize),
 			array:     unsafe.Pointer(header.Data), // use address of slice data storage
 			index:     index,
 		}
 
-		m.fillIndexItems(newData) // initialize new index slice with longer keys
+		m.fillIndexItems(newStore) // initialize new index slice with longer keys
 
-		m.store.Store(newData)
+		m.store.Store(newStore)
 
-		m.fillIndexItems(newData) // make sure that the new index is up to date with the current state of the linked list
+		m.fillIndexItems(newStore) // make sure that the new index is up-to-date with the current state of the linked list
 
 		if !loop {
 			return
@@ -358,7 +361,7 @@ func (m *HashMap[Key, Value]) grow(newSize uintptr, loop bool) {
 
 		// check if a new resize needs to be done already
 		count := uintptr(m.Len())
-		if !m.isResizeNeeded(newData, count) {
+		if !m.isResizeNeeded(newStore, count) {
 			return
 		}
 		newSize = 0 // 0 means double the current size
