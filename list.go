@@ -4,7 +4,7 @@ import (
 	"sync/atomic"
 )
 
-// List is a sorted doubly linked list.
+// List is a sorted linked list.
 type List[Key comparable, Value any] struct {
 	count atomic.Uintptr
 	head  *ListElement[Key, Value]
@@ -42,7 +42,7 @@ func (l *List[Key, Value]) Add(element, searchStart *ListElement[Key, Value]) (e
 func (l *List[Key, Value]) AddOrUpdate(element, searchStart *ListElement[Key, Value]) bool {
 	left, found, right := l.search(searchStart, element)
 	if found != nil { // existing item found
-		found.setValue(element.value.Load()) // update the value
+		found.value.Store(element.value.Load()) // update the value
 		return true
 	}
 
@@ -55,24 +55,12 @@ func (l *List[Key, Value]) Delete(element *ListElement[Key, Value]) {
 		return // concurrent delete of the item is in progress
 	}
 
-	for {
-		left := element.Previous()
-		right := element.Next()
+	right := element.Next()
+	// point head to next element if element to delete was head
+	l.head.next.CompareAndSwap(element, right)
 
-		if left == nil { // element is first item in list?
-			if !l.head.nextElement.CompareAndSwap(element, right) {
-				continue // now head item was inserted concurrently
-			}
-		} else {
-			if !left.nextElement.CompareAndSwap(element, right) {
-				continue // item was modified concurrently
-			}
-		}
-		if right != nil {
-			right.previousElement.CompareAndSwap(element, left)
-		}
-		break
-	}
+	// element left from the deleted element will replace its next
+	// pointer to the next valid element on call of Next().
 
 	l.count.Add(^uintptr(0)) // decrease counter
 }
@@ -118,14 +106,9 @@ func (l *List[Key, Value]) insertAt(element, left, right *ListElement[Key, Value
 		left = l.head
 	}
 
-	element.previousElement.Store(left)
-	element.nextElement.Store(right)
+	element.next.Store(right)
 
-	if !left.nextElement.CompareAndSwap(right, element) {
-		return false // item was modified concurrently
-	}
-
-	if right != nil && !right.previousElement.CompareAndSwap(left, element) {
+	if !left.next.CompareAndSwap(right, element) {
 		return false // item was modified concurrently
 	}
 

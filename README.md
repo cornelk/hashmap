@@ -85,7 +85,7 @@ The benchmarks were run with Golang 1.19.0 on Linux using `make benchmark`.
 * Technical design decisions have been made based on benchmarks that are stored in an external repository:
   [go-benchmark](https://github.com/cornelk/go-benchmark)
 
-* The library uses a sorted doubly linked list and a slice as an index into that list.
+* The library uses a sorted linked list and a slice as an index into that list.
 
 * The Get() function contains helper functions that have been inlined manually until the Golang compiler will inline them automatically.
 
