@@ -1,4 +1,4 @@
-package hashmap
+package benchmarks
 
 import (
 	"strconv"
@@ -7,14 +7,15 @@ import (
 	"testing"
 
 	"github.com/alphadose/haxmap"
+	"github.com/cornelk/hashmap"
 )
 
 const benchmarkItemCount = 512
 
-func setupHashMap(b *testing.B) *HashMap[uintptr, uintptr] {
+func setupHashMap(b *testing.B) *hashmap.HashMap[uintptr, uintptr] {
 	b.Helper()
 
-	m := New[uintptr, uintptr]()
+	m := hashmap.New[uintptr, uintptr]()
 	for i := uintptr(0); i < benchmarkItemCount; i++ {
 		m.Set(i, i)
 	}
@@ -33,10 +34,10 @@ func setupHaxMap(b *testing.B) *haxmap.HashMap[uintptr, uintptr] {
 	return m
 }
 
-func setupHashMapString(b *testing.B) (*HashMap[string, string], []string) {
+func setupHashMapString(b *testing.B) (*hashmap.HashMap[string, string], []string) {
 	b.Helper()
 
-	m := New[string, string]()
+	m := hashmap.New[string, string]()
 	keys := make([]string, benchmarkItemCount)
 	for i := 0; i < benchmarkItemCount; i++ {
 		s := strconv.Itoa(i)
@@ -331,7 +332,7 @@ func BenchmarkReadGoMapStringMutex(b *testing.B) {
 }
 
 func BenchmarkWriteHashMapUint(b *testing.B) {
-	m := New[uintptr, uintptr]()
+	m := hashmap.New[uintptr, uintptr]()
 
 	for n := 0; n < b.N; n++ {
 		for i := uintptr(0); i < benchmarkItemCount; i++ {

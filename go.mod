@@ -3,7 +3,6 @@ module github.com/cornelk/hashmap
 go 1.19
 
 require (
-	github.com/alphadose/haxmap v0.1.1-0.20220808155550-bc3b9a6adfc4
 	github.com/cespare/xxhash v1.1.0
 	github.com/stretchr/testify v1.8.0
 )

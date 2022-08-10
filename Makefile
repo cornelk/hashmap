@@ -5,7 +5,7 @@ lint: ## run code linters
 	golangci-lint run
 
 benchmark: ## run benchmarks
-	go test -cpu 8 -run=^# -bench=.
+	cd benchmarks && go test -cpu 8 -run=^# -bench=.
 
 test: ## run tests
 	go test -race ./...
