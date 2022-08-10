@@ -3,10 +3,12 @@ run:
 
 linters:
   enable:
+    - asasalint # check for pass []any as any in variadic func(...any)
     - asciicheck # Simple linter to check that your code does not contain non-ASCII identifiers
     - bidichk # Checks for dangerous unicode character sequences
     - containedctx # detects struct contained context.Context field
     - contextcheck # check the function whether use a non-inherited context
+    - cyclop # checks function and package cyclomatic complexity
     - deadcode # Finds unused code
     - decorder # check declaration order and count of types, constants, variables and functions
     - depguard # Go linter that checks if package imports are in a list of acceptable packages
@@ -17,6 +19,7 @@ linters:
     - errorlint # finds code that will cause problems with the error wrapping scheme introduced in Go 1.13
     - exportloopref # checks for pointers to enclosing loop variables
     - funlen # Tool for detection of long functions
+    - gci # controls golang package import order and makes it always deterministic
     - gocognit # Computes and checks the cognitive complexity of functions
     - gocritic # Provides diagnostics that check for bugs, performance and style issues
     - gocyclo # Computes and checks the cyclomatic complexity of functions
@@ -29,6 +32,7 @@ linters:
     - makezero # Finds slice declarations with non-zero initial length
     - misspell # Finds commonly misspelled English words in comments
     - nakedret # Finds naked returns in functions
+    - nestif # Reports deeply nested if statements
     - nilerr # Finds the code that returns nil even if it checks that the error is not nil
     - nilnil # Checks that there is no simultaneous return of `nil` error and an invalid value
     - prealloc # Finds slice declarations that could potentially be preallocated
@@ -50,6 +54,8 @@ linters:
     - whitespace # detects leading and trailing whitespace
 
 linters-settings:
+  cyclop:
+    max-complexity: 15
   gocritic:
     disabled-checks:
       - newDeref
