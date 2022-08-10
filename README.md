@@ -11,8 +11,7 @@ A Golang lock-free thread-safe HashMap optimized for fastest read access.
 
 It requires Golang 1.19+ as it makes use of Generics and the new atomic package helpers. 
 
-***Warning: This library and derived work is experimental and should not be used in production. It contains an unfixed
-bug that can cause writes to be lost.***
+***Warning: This library is experimental, there are currently no known bugs but more battle-testing is needed.***
 
 ## Usage
 
@@ -46,26 +45,26 @@ Reading from the hash map in a thread-safe way is nearly as fast as reading from
 in an unsafe way and twice as fast as Go's `sync.Map`:
 
 ```
-BenchmarkReadHashMapUint-8                       2534198               480.4 ns/op
-BenchmarkReadHaxMapUint-8                        2350569               523.0 ns/op
-BenchmarkReadGoMapUintUnsafe-8                   3308552               367.4 ns/op
-BenchmarkReadGoMapUintMutex-8                      85701             13820 ns/op
-BenchmarkReadGoSyncMapUint-8                      981177              1234 ns/op
+BenchmarkReadHashMapUint-8                       2047108               547.2 ns/op
+BenchmarkReadHaxMapUint-8                        2295067               532.3 ns/op (not safe to use, can lose writes during concurrent deletes)
+BenchmarkReadGoMapUintUnsafe-8                   3303577               360.6 ns/op
+BenchmarkReadGoMapUintMutex-8                      83017             14266 ns/op
+BenchmarkReadGoSyncMapUint-8                      943773              1208 ns/op
 ```
 
 Reading from the map while writes are happening:
 ```
-BenchmarkReadHashMapWithWritesUint-8             1852483               646.7 ns/op
-BenchmarkReadHaxMapWithWritesUint-8              1761938               680.3 ns/op
-BenchmarkReadGoSyncMapWithWritesUint-8            758544              1512 ns/op
+BenchmarkReadHashMapWithWritesUint-8             1669750               718.1 ns/op
+BenchmarkReadGoMapWithWritesUintMutex-8            24919             54270 ns/op
+BenchmarkReadGoSyncMapWithWritesUint-8            823063              1439 ns/op
 ```
 
 Write performance without any concurrent reads:
 
 ```
-BenchmarkWriteHashMapUint-8                        30304             42174 ns/op
-BenchmarkWriteGoMapMutexUint-8                    174100              7223 ns/op
-BenchmarkWriteGoSyncMapUint-8                      24432             45512 ns/op
+BenchmarkWriteHashMapUint-8                        30104             49176 ns/op
+BenchmarkWriteGoMapMutexUint-8                    177536              6571 ns/op
+BenchmarkWriteGoSyncMapUint-8                      19857             61428 ns/op
 ```
 
 The benchmarks were run with Golang 1.19.0 on Linux using `make benchmark`.
