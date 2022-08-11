@@ -20,7 +20,7 @@ const MaxFillRate = 50
 type HashMap[Key comparable, Value any] struct {
 	hasher     func(Key) uintptr
 	store      atomic.Pointer[store[Key, Value]] // pointer to a map instance that gets replaced if the map resizes
-	linkedList atomic.Pointer[List[Key, Value]]  // key sorted linked list of elements
+	linkedList *List[Key, Value]                 // key sorted linked list of elements
 	// resizing marks a resizing operation in progress.
 	// this is using uintptr instead of atomic.Bool to avoid using 32 bit int on 64 bit systems
 	resizing atomic.Uintptr
@@ -52,8 +52,7 @@ func (m *HashMap[Key, Value]) SetHasher(hasher func(Key) uintptr) {
 
 // Len returns the number of elements within the map.
 func (m *HashMap[Key, Value]) Len() int {
-	list := m.linkedList.Load()
-	return list.Len()
+	return m.linkedList.Len()
 }
 
 // Get retrieves an element from the map under given hash key.
@@ -128,12 +127,11 @@ func (m *HashMap[Key, Value]) Del(key Key) bool {
 	hash := m.hasher(key)
 	store := m.store.Load()
 	element := store.item(hash)
-	list := m.linkedList.Load()
 
 	for ; element != nil; element = element.Next() {
 		if element.keyHash == hash && element.key == key {
 			m.deleteElement(element)
-			list.Delete(element)
+			m.linkedList.Delete(element)
 			return true
 		}
 
@@ -183,12 +181,10 @@ func (m *HashMap[Key, Value]) Grow(newSize uintptr) {
 
 // String returns the map as a string, only hashed keys are printed.
 func (m *HashMap[Key, Value]) String() string {
-	list := m.linkedList.Load()
-
 	buffer := bytes.NewBufferString("")
 	buffer.WriteRune('[')
 
-	first := list.First()
+	first := m.linkedList.First()
 	item := first
 
 	for item != nil {
@@ -205,8 +201,7 @@ func (m *HashMap[Key, Value]) String() string {
 // Range calls f sequentially for each key and value present in the map.
 // If f returns false, range stops the iteration.
 func (m *HashMap[Key, Value]) Range(f func(Key, Value) bool) {
-	list := m.linkedList.Load()
-	item := list.First()
+	item := m.linkedList.First()
 
 	for item != nil {
 		value := item.Value()
@@ -218,12 +213,9 @@ func (m *HashMap[Key, Value]) Range(f func(Key, Value) bool) {
 }
 
 func (m *HashMap[Key, Value]) allocate(newSize uintptr) {
-	list := NewList[Key, Value]()
-	// atomic swap in case of another allocation happening concurrently
-	if m.linkedList.CompareAndSwap(nil, list) {
-		if m.resizing.CompareAndSwap(0, 1) {
-			m.grow(newSize, false)
-		}
+	m.linkedList = NewList[Key, Value]()
+	if m.resizing.CompareAndSwap(0, 1) {
+		m.grow(newSize, false)
 	}
 }
 
@@ -281,13 +273,12 @@ func (m *HashMap[Key, Value]) insertElement(element *ListElement[Key, Value], up
 
 	for {
 		store := m.store.Load()
-		existing := store.item(element.keyHash)
-		list := m.linkedList.Load()
+		searchStart := store.item(element.keyHash)
 
 		if update {
-			inserted = list.AddOrUpdate(element, existing)
+			inserted = m.linkedList.AddOrUpdate(element, searchStart)
 		} else if !inserted { // if retrying after insert during grow, do not add to list again
-			existed, inserted = list.Add(element, existing)
+			existed, inserted = m.linkedList.Add(element, searchStart)
 			if existed {
 				return false
 			}
@@ -369,8 +360,7 @@ func (m *HashMap[Key, Value]) grow(newSize uintptr, loop bool) {
 }
 
 func (m *HashMap[Key, Value]) fillIndexItems(store *store[Key, Value]) {
-	list := m.linkedList.Load()
-	first := list.First()
+	first := m.linkedList.First()
 	item := first
 	lastIndex := uintptr(0)
 
