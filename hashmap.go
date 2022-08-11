@@ -243,10 +243,7 @@ func (m *HashMap[Key, Value]) setDefaultHasher() {
 }
 
 func (m *HashMap[Key, Value]) isResizeNeeded(store *store[Key, Value], count uintptr) bool {
-	l := uintptr(len(store.index))
-	if l == 0 {
-		return false
-	}
+	l := uintptr(len(store.index)) // l can't be 0 as it gets initialized in New()
 	fillRate := (count * 100) / l
 	return fillRate > MaxFillRate
 }
