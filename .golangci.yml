@@ -9,7 +9,6 @@ linters:
     - containedctx # detects struct contained context.Context field
     - contextcheck # check the function whether use a non-inherited context
     - cyclop # checks function and package cyclomatic complexity
-    - deadcode # Finds unused code
     - decorder # check declaration order and count of types, constants, variables and functions
     - depguard # Go linter that checks if package imports are in a list of acceptable packages
     - dogsled # Checks assignments with too many blank identifiers (e.g. x, _, _, _, := f())
@@ -39,7 +38,6 @@ linters:
     - predeclared # find code that shadows one of Go's predeclared identifiers
     - revive # drop-in replacement of golint
     - staticcheck # drop-in replacement of go vet
-    - structcheck # Finds unused struct fields
     - stylecheck # Stylecheck is a replacement for golint
     - tenv # detects using os.Setenv instead of t.Setenv
     - thelper # checks the consistency of test helpers
@@ -49,7 +47,6 @@ linters:
     - unparam # Reports unused function parameters
     - unused # Checks Go code for unused constants, variables, functions and types
     - usestdlibvars # detect the possibility to use variables/constants from the Go standard library
-    - varcheck # Finds unused global variables and constants
     - wastedassign # finds wasted assignment statements
     - whitespace # detects leading and trailing whitespace
 
