@@ -215,19 +215,28 @@ func (m *HashMap[Key, Value]) setDefaultHasher() {
 	var key Key
 	switch any(key).(type) {
 	case string:
-		m.hasher = m.stringHasher
+		m.hasher = m.xxHashString
 	case int, uint, uintptr:
-		m.hasher = m.uintptrHasher
+		switch intSizeBytes {
+		case 2:
+			m.hasher = m.xxHashWord
+		case 4:
+			m.hasher = m.xxHashDword
+		case 8:
+			m.hasher = m.xxHashQword
+		default:
+			panic(fmt.Errorf("unsupported integer byte size %d", intSizeBytes))
+		}
 	case int8, uint8:
-		m.hasher = m.byteHasher
+		m.hasher = m.xxHashByte
 	case int16, uint16:
-		m.hasher = m.wordHasher
+		m.hasher = m.xxHashWord
 	case int32, uint32, float32:
-		m.hasher = m.dwordHasher
+		m.hasher = m.xxHashDword
 	case int64, uint64, float64, complex64:
-		m.hasher = m.qwordHasher
+		m.hasher = m.xxHashQword
 	case complex128:
-		m.hasher = m.owordHasher
+		m.hasher = m.xxHashOword
 	default:
 		panic(fmt.Errorf("unsupported key type %T", key))
 	}
