@@ -10,7 +10,7 @@ import (
 	"github.com/cornelk/hashmap"
 )
 
-const benchmarkItemCount = 512
+const benchmarkItemCount = 1024
 
 func setupHashMap(b *testing.B) *hashmap.HashMap[uintptr, uintptr] {
 	b.Helper()
@@ -19,8 +19,6 @@ func setupHashMap(b *testing.B) *hashmap.HashMap[uintptr, uintptr] {
 	for i := uintptr(0); i < benchmarkItemCount; i++ {
 		m.Set(i, i)
 	}
-
-	b.ResetTimer()
 	return m
 }
 
@@ -45,7 +43,6 @@ func setupHashMapString(b *testing.B) (*hashmap.HashMap[string, string], []strin
 		keys[i] = s
 	}
 
-	b.ResetTimer()
 	return m, keys
 }
 
@@ -57,7 +54,6 @@ func setupGoMap(b *testing.B) map[uintptr]uintptr {
 		m[i] = i
 	}
 
-	b.ResetTimer()
 	return m
 }
 
@@ -69,7 +65,6 @@ func setupGoSyncMap(b *testing.B) *sync.Map {
 		m.Store(i, i)
 	}
 
-	b.ResetTimer()
 	return m
 }
 
@@ -83,12 +78,12 @@ func setupGoMapString(b *testing.B) (map[string]string, []string) {
 		m[s] = s
 		keys[i] = s
 	}
-	b.ResetTimer()
 	return m, keys
 }
 
 func BenchmarkReadHashMapUint(b *testing.B) {
 	m := setupHashMap(b)
+	b.ResetTimer()
 
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
@@ -105,6 +100,7 @@ func BenchmarkReadHashMapUint(b *testing.B) {
 func BenchmarkReadHashMapWithWritesUint(b *testing.B) {
 	m := setupHashMap(b)
 	var writer uintptr
+	b.ResetTimer()
 
 	b.RunParallel(func(pb *testing.PB) {
 		// use 1 thread as writer
@@ -129,6 +125,7 @@ func BenchmarkReadHashMapWithWritesUint(b *testing.B) {
 
 func BenchmarkReadHashMapString(b *testing.B) {
 	m, keys := setupHashMapString(b)
+	b.ResetTimer()
 
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
@@ -145,6 +142,7 @@ func BenchmarkReadHashMapString(b *testing.B) {
 
 func BenchmarkReadHashMapInterface(b *testing.B) {
 	m := setupHashMap(b)
+	b.ResetTimer()
 
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
@@ -160,6 +158,7 @@ func BenchmarkReadHashMapInterface(b *testing.B) {
 
 func BenchmarkReadHaxMapUint(b *testing.B) {
 	m := setupHaxMap(b)
+	b.ResetTimer()
 
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
@@ -176,6 +175,7 @@ func BenchmarkReadHaxMapUint(b *testing.B) {
 func BenchmarkReadHaxMapWithWritesUint(b *testing.B) {
 	m := setupHaxMap(b)
 	var writer uintptr
+	b.ResetTimer()
 
 	b.RunParallel(func(pb *testing.PB) {
 		// use 1 thread as writer
@@ -200,6 +200,7 @@ func BenchmarkReadHaxMapWithWritesUint(b *testing.B) {
 
 func BenchmarkReadGoMapUintUnsafe(b *testing.B) {
 	m := setupGoMap(b)
+	b.ResetTimer()
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
 			for i := uintptr(0); i < benchmarkItemCount; i++ {
@@ -215,6 +216,7 @@ func BenchmarkReadGoMapUintUnsafe(b *testing.B) {
 func BenchmarkReadGoMapUintMutex(b *testing.B) {
 	m := setupGoMap(b)
 	l := &sync.RWMutex{}
+	b.ResetTimer()
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
 			for i := uintptr(0); i < benchmarkItemCount; i++ {
@@ -233,6 +235,7 @@ func BenchmarkReadGoMapWithWritesUintMutex(b *testing.B) {
 	m := setupGoMap(b)
 	l := &sync.RWMutex{}
 	var writer uintptr
+	b.ResetTimer()
 
 	b.RunParallel(func(pb *testing.PB) {
 		// use 1 thread as writer
@@ -261,6 +264,7 @@ func BenchmarkReadGoMapWithWritesUintMutex(b *testing.B) {
 
 func BenchmarkReadGoSyncMapUint(b *testing.B) {
 	m := setupGoSyncMap(b)
+	b.ResetTimer()
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
 			for i := uintptr(0); i < benchmarkItemCount; i++ {
@@ -276,6 +280,7 @@ func BenchmarkReadGoSyncMapUint(b *testing.B) {
 func BenchmarkReadGoSyncMapWithWritesUint(b *testing.B) {
 	m := setupGoSyncMap(b)
 	var writer uintptr
+	b.ResetTimer()
 
 	b.RunParallel(func(pb *testing.PB) {
 		// use 1 thread as writer
@@ -300,6 +305,7 @@ func BenchmarkReadGoSyncMapWithWritesUint(b *testing.B) {
 
 func BenchmarkReadGoMapStringUnsafe(b *testing.B) {
 	m, keys := setupGoMapString(b)
+	b.ResetTimer()
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
 			for i := 0; i < benchmarkItemCount; i++ {
@@ -316,6 +322,7 @@ func BenchmarkReadGoMapStringUnsafe(b *testing.B) {
 func BenchmarkReadGoMapStringMutex(b *testing.B) {
 	m, keys := setupGoMapString(b)
 	l := &sync.RWMutex{}
+	b.ResetTimer()
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
 			for i := 0; i < benchmarkItemCount; i++ {
@@ -333,6 +340,7 @@ func BenchmarkReadGoMapStringMutex(b *testing.B) {
 
 func BenchmarkWriteHashMapUint(b *testing.B) {
 	m := hashmap.New[uintptr, uintptr]()
+	b.ResetTimer()
 
 	for n := 0; n < b.N; n++ {
 		for i := uintptr(0); i < benchmarkItemCount; i++ {
@@ -344,6 +352,7 @@ func BenchmarkWriteHashMapUint(b *testing.B) {
 func BenchmarkWriteGoMapMutexUint(b *testing.B) {
 	m := make(map[uintptr]uintptr)
 	l := &sync.RWMutex{}
+	b.ResetTimer()
 
 	for n := 0; n < b.N; n++ {
 		for i := uintptr(0); i < benchmarkItemCount; i++ {
@@ -356,6 +365,7 @@ func BenchmarkWriteGoMapMutexUint(b *testing.B) {
 
 func BenchmarkWriteGoSyncMapUint(b *testing.B) {
 	m := &sync.Map{}
+	b.ResetTimer()
 
 	for n := 0; n < b.N; n++ {
 		for i := uintptr(0); i < benchmarkItemCount; i++ {

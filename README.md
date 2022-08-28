@@ -45,26 +45,26 @@ Reading from the hash map in a thread-safe way is nearly as fast as reading from
 in an unsafe way and twice as fast as Go's `sync.Map`:
 
 ```
-BenchmarkReadHashMapUint-8                       2047108               547.2 ns/op
-BenchmarkReadHaxMapUint-8                        2295067               532.3 ns/op (not safe to use, can lose writes during concurrent deletes)
-BenchmarkReadGoMapUintUnsafe-8                   3303577               360.6 ns/op
-BenchmarkReadGoMapUintMutex-8                      83017             14266 ns/op
-BenchmarkReadGoSyncMapUint-8                      943773              1208 ns/op
+BenchmarkReadHashMapUint-8                	 1314156	       955.6 ns/op
+BenchmarkReadHaxMapUint-8                 	  872134	      1316 ns/op (can not handle hash 0 collisions)
+BenchmarkReadGoMapUintUnsafe-8            	 1560886	       762.8 ns/op
+BenchmarkReadGoMapUintMutex-8             	   42284	     28232 ns/op
+BenchmarkReadGoSyncMapUint-8              	  468338	      2672 ns/op
 ```
 
 Reading from the map while writes are happening:
 ```
-BenchmarkReadHashMapWithWritesUint-8             1669750               718.1 ns/op
-BenchmarkReadGoMapWithWritesUintMutex-8            24919             54270 ns/op
-BenchmarkReadGoSyncMapWithWritesUint-8            823063              1439 ns/op
+BenchmarkReadHashMapWithWritesUint-8      	  890938	      1288 ns/op
+BenchmarkReadGoMapWithWritesUintMutex-8   	   14290	     86758 ns/op
+BenchmarkReadGoSyncMapWithWritesUint-8    	  374464	      3149 ns/op
 ```
 
 Write performance without any concurrent reads:
 
 ```
-BenchmarkWriteHashMapUint-8                        30104             49176 ns/op
-BenchmarkWriteGoMapMutexUint-8                    177536              6571 ns/op
-BenchmarkWriteGoSyncMapUint-8                      19857             61428 ns/op
+BenchmarkWriteHashMapUint-8               	   15384	     79032 ns/op
+BenchmarkWriteGoMapMutexUint-8            	   74569	     14874 ns/op
+BenchmarkWriteGoSyncMapUint-8             	   10000	    107094 ns/op
 ```
 
 The benchmarks were run with Golang 1.19.0 on Linux using `make benchmark`.
@@ -73,7 +73,7 @@ The benchmarks were run with Golang 1.19.0 on Linux using `make benchmark`.
 
 * Faster
 
-* thread-safe access without need of a(n extra) mutex
+* thread-safe access without need of a mutex
 
 ### Benefits over [Golang's sync.Map](https://golang.org/pkg/sync/#Map)
 
@@ -92,3 +92,5 @@ The benchmarks were run with Golang 1.19.0 on Linux using `make benchmark`.
   Once a slice is allocated, the size of it does not change.
   The library limits the index into the slice, therefore the Golang size check is obsolete.
   When the slice reaches a defined fill rate, a bigger slice is allocated and all keys are recalculated and transferred into the new slice.
+
+* For hashing, specialized xxhash implementations are used that match the size of the key type where available
