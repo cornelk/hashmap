@@ -58,11 +58,9 @@ func (m *HashMap[Key, Value]) Len() int {
 // Get retrieves an element from the map under given hash key.
 func (m *HashMap[Key, Value]) Get(key Key) (Value, bool) {
 	hash := m.hasher(key)
-	store := m.store.Load()
-	element := store.item(hash)
 
 	// inline HashMap.searchItem()
-	for element != nil {
+	for element := m.store.Load().item(hash); element != nil; element = element.Next() {
 		if element.keyHash == hash && element.key == key {
 			return element.Value(), true
 		}
@@ -70,8 +68,6 @@ func (m *HashMap[Key, Value]) Get(key Key) (Value, bool) {
 		if element.keyHash > hash {
 			return *new(Value), false
 		}
-
-		element = element.Next()
 	}
 	return *new(Value), false
 }
@@ -84,10 +80,7 @@ func (m *HashMap[Key, Value]) GetOrInsert(key Key, value Value) (Value, bool) {
 	var newElement *ListElement[Key, Value]
 
 	for {
-		store := m.store.Load()
-		element := store.item(hash)
-
-		for element != nil {
+		for element := m.store.Load().item(hash); element != nil; element = element.Next() {
 			if element.keyHash == hash && element.key == key {
 				actual := element.Value()
 				return actual, true
@@ -96,8 +89,6 @@ func (m *HashMap[Key, Value]) GetOrInsert(key Key, value Value) (Value, bool) {
 			if element.keyHash > hash {
 				break
 			}
-
-			element = element.Next()
 		}
 
 		if newElement == nil { // allocate only once
