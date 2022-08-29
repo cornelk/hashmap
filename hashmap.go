@@ -99,7 +99,7 @@ func (m *HashMap[Key, Value]) GetOrInsert(key Key, value Value) (Value, bool) {
 			newElement.value.Store(&value)
 		}
 
-		if m.insertElement(newElement, false) {
+		if m.insertElement(newElement, hash, key, value) {
 			return value, false
 		}
 	}
@@ -139,12 +139,36 @@ func (m *HashMap[Key, Value]) Del(key Key) bool {
 // Returns true if the item was inserted or false if it existed.
 func (m *HashMap[Key, Value]) Insert(key Key, value Value) bool {
 	hash := m.hasher(key)
-	element := &ListElement[Key, Value]{
-		key:     key,
-		keyHash: hash,
+	var (
+		existed, inserted bool
+		element           *ListElement[Key, Value]
+	)
+
+	for {
+		store := m.store.Load()
+		searchStart := store.item(hash)
+
+		if !inserted { // if retrying after insert during grow, do not add to list again
+			element, existed, inserted = m.linkedList.Add(searchStart, hash, key, value)
+			if existed {
+				return false
+			}
+			if !inserted {
+				continue // a concurrent add did interfere, try again
+			}
+		}
+
+		count := store.addItem(element)
+		currentStore := m.store.Load()
+		if store != currentStore { // retry insert in case of insert during grow
+			continue
+		}
+
+		if m.isResizeNeeded(store, count) && m.resizing.CompareAndSwap(0, 1) {
+			go m.grow(0, true)
+		}
+		return true
 	}
-	element.value.Store(&value)
-	return m.insertElement(element, false)
 }
 
 // Set sets the value under the specified key to the map. An existing item for this key will be overwritten.
@@ -152,12 +176,27 @@ func (m *HashMap[Key, Value]) Insert(key Key, value Value) bool {
 // after the resize operation is finished.
 func (m *HashMap[Key, Value]) Set(key Key, value Value) {
 	hash := m.hasher(key)
-	element := &ListElement[Key, Value]{
-		key:     key,
-		keyHash: hash,
+
+	for {
+		store := m.store.Load()
+		searchStart := store.item(hash)
+
+		element, added := m.linkedList.AddOrUpdate(searchStart, hash, key, value)
+		if !added {
+			continue // a concurrent add did interfere, try again
+		}
+
+		count := store.addItem(element)
+		currentStore := m.store.Load()
+		if store != currentStore { // retry insert in case of insert during grow
+			continue
+		}
+
+		if m.isResizeNeeded(store, count) && m.resizing.CompareAndSwap(0, 1) {
+			go m.grow(0, true)
+		}
+		return
 	}
-	element.value.Store(&value)
-	m.insertElement(element, true)
 }
 
 // Grow resizes the hashmap to a new size, the size gets rounded up to next power of 2.
@@ -265,23 +304,22 @@ func (m *HashMap[Key, Value]) searchItem(item *ListElement[Key, Value], key Key,
 }
 */
 
-func (m *HashMap[Key, Value]) insertElement(element *ListElement[Key, Value], update bool) bool {
+func (m *HashMap[Key, Value]) insertElement(element *ListElement[Key, Value], hash uintptr, key Key, value Value) bool {
 	var existed, inserted bool
 
 	for {
 		store := m.store.Load()
 		searchStart := store.item(element.keyHash)
 
-		if update {
-			inserted = m.linkedList.AddOrUpdate(element, searchStart)
-		} else if !inserted { // if retrying after insert during grow, do not add to list again
-			existed, inserted = m.linkedList.Add(element, searchStart)
+		if !inserted { // if retrying after insert during grow, do not add to list again
+			_, existed, inserted = m.linkedList.Add(searchStart, hash, key, value)
 			if existed {
 				return false
 			}
-		}
-		if !inserted {
-			continue // a concurrent add did interfere, try again
+
+			if !inserted {
+				continue // a concurrent add did interfere, try again
+			}
 		}
 
 		count := store.addItem(element)

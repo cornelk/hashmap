@@ -426,9 +426,9 @@ func TestConcurrentInsertDelete(t *testing.T) {
 			keyHash: 223,
 		}
 		l := NewList[int, int]()
-		l.Add(el1, nil)
-		l.Add(el2, nil)
-		l.Add(el3, nil)
+		l.Add(nil, el1.keyHash, el1.key, 111)
+		l.Add(nil, el2.keyHash, el2.key, 222)
+		l.Add(nil, el3.keyHash, el3.key, 333)
 		wg := sync.WaitGroup{}
 		wg.Add(2)
 
@@ -443,7 +443,7 @@ func TestConcurrentInsertDelete(t *testing.T) {
 			rand.Seed(int64(time.Now().Nanosecond()))
 			time.Sleep(time.Duration(rand.Intn(10)))
 			for {
-				if _, inserted := l.Add(newIl, nil); inserted {
+				if _, _, inserted := l.Add(nil, newIl.keyHash, newIl.key, 223); inserted {
 					return
 				}
 			}
@@ -451,7 +451,7 @@ func TestConcurrentInsertDelete(t *testing.T) {
 		wg.Wait()
 
 		assert.Equal(t, 3, l.Len())
-		_, found, _ := l.search(nil, newIl)
+		_, found, _ := l.search(nil, newIl.keyHash, newIl.key)
 		assert.NotNil(t, found)
 	}
 }
