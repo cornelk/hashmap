@@ -249,38 +249,6 @@ func (m *HashMap[Key, Value]) allocate(newSize uintptr) {
 	}
 }
 
-// setDefaultHasher sets the default hasher depending on the key type.
-func (m *HashMap[Key, Value]) setDefaultHasher() {
-	var key Key
-	switch any(key).(type) {
-	case string:
-		m.hasher = m.xxHashString
-	case int, uint, uintptr:
-		switch intSizeBytes {
-		case 2:
-			m.hasher = m.xxHashWord
-		case 4:
-			m.hasher = m.xxHashDword
-		case 8:
-			m.hasher = m.xxHashQword
-		default:
-			panic(fmt.Errorf("unsupported integer byte size %d", intSizeBytes))
-		}
-	case int8, uint8:
-		m.hasher = m.xxHashByte
-	case int16, uint16:
-		m.hasher = m.xxHashWord
-	case int32, uint32, float32:
-		m.hasher = m.xxHashDword
-	case int64, uint64, float64, complex64:
-		m.hasher = m.xxHashQword
-	case complex128:
-		m.hasher = m.xxHashOword
-	default:
-		panic(fmt.Errorf("unsupported key type %T", key))
-	}
-}
-
 func (m *HashMap[Key, Value]) isResizeNeeded(store *store[Key, Value], count uintptr) bool {
 	l := uintptr(len(store.index)) // l can't be 0 as it gets initialized in New()
 	fillRate := (count * 100) / l

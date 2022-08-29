@@ -45,8 +45,8 @@ Reading from the hash map in a thread-safe way is nearly as fast as reading from
 in an unsafe way and twice as fast as Go's `sync.Map`:
 
 ```
-BenchmarkReadHashMapUint-8                	 1314156	       955.6 ns/op
-BenchmarkReadHaxMapUint-8                 	  872134	      1316 ns/op (can not handle hash 0 collisions)
+BenchmarkReadHashMapUint-8                	 1601247	       754.2 ns/op
+BenchmarkReadHaxMapUint-8                 	 1519165	       788.3 ns/op
 BenchmarkReadGoMapUintUnsafe-8            	 1560886	       762.8 ns/op
 BenchmarkReadGoMapUintMutex-8             	   42284	     28232 ns/op
 BenchmarkReadGoSyncMapUint-8              	  468338	      2672 ns/op
@@ -54,9 +54,9 @@ BenchmarkReadGoSyncMapUint-8              	  468338	      2672 ns/op
 
 Reading from the map while writes are happening:
 ```
-BenchmarkReadHashMapWithWritesUint-8      	  890938	      1288 ns/op
-BenchmarkReadGoMapWithWritesUintMutex-8   	   14290	     86758 ns/op
-BenchmarkReadGoSyncMapWithWritesUint-8    	  374464	      3149 ns/op
+BenchmarkReadHashMapWithWritesUint-8      	 1268134	       941.6 ns/op
+BenchmarkReadHaxMapWithWritesUint-8       	 1000000	      1045 ns/op
+BenchmarkReadGoSyncMapWithWritesUint-8    	  369918	      3149 ns/op
 ```
 
 Write performance without any concurrent reads:
