@@ -5,8 +5,7 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
+	"github.com/cornelk/hashmap/assert"
 )
 
 // TestAPICounter shows how to use the hashmap to count REST server API calls.
@@ -24,14 +23,14 @@ func TestAPICounter(t *testing.T) {
 
 	s := fmt.Sprintf("/api%d/", 0)
 	value, ok := m.Get(s)
-	require.True(t, ok)
-	assert.EqualValues(t, 25, *value)
+	assert.True(t, ok)
+	assert.Equal(t, 25, *value)
 }
 
 func TestExample(t *testing.T) {
 	m := NewString[string, int]()
 	m.Set("amount", 123)
 	value, ok := m.Get("amount")
-	require.True(t, ok)
+	assert.True(t, ok)
 	assert.Equal(t, 123, value)
 }

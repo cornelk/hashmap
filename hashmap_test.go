@@ -10,14 +10,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
+	"github.com/cornelk/hashmap/assert"
 )
 
 func TestNew(t *testing.T) {
 	t.Parallel()
 	m := New[uintptr, uintptr]()
-	assert.Zero(t, m.Len())
+	assert.Equal(t, 0, m.Len())
 }
 
 func TestSetString(t *testing.T) {
@@ -28,12 +27,12 @@ func TestSetString(t *testing.T) {
 
 	m.Set(1, elephant) // insert
 	value, ok := m.Get(1)
-	require.True(t, ok)
+	assert.True(t, ok)
 	assert.Equal(t, elephant, value)
 
 	m.Set(1, monkey) // overwrite
 	value, ok = m.Get(1)
-	require.True(t, ok)
+	assert.True(t, ok)
 	assert.Equal(t, monkey, value)
 
 	assert.Equal(t, 1, m.Len())
@@ -41,7 +40,7 @@ func TestSetString(t *testing.T) {
 	m.Set(2, elephant) // insert
 	assert.Equal(t, 2, m.Len())
 	value, ok = m.Get(2)
-	require.True(t, ok)
+	assert.True(t, ok)
 	assert.Equal(t, elephant, value)
 }
 
@@ -51,13 +50,13 @@ func TestSetUint8(t *testing.T) {
 
 	m.Set(1, 128) // insert
 	value, ok := m.Get(1)
-	require.True(t, ok)
+	assert.True(t, ok)
 	assert.Equal(t, 128, value)
 
 	m.Set(2, 200) // insert
 	assert.Equal(t, 2, m.Len())
 	value, ok = m.Get(2)
-	require.True(t, ok)
+	assert.True(t, ok)
 	assert.Equal(t, 200, value)
 }
 
@@ -67,13 +66,13 @@ func TestSetUint16(t *testing.T) {
 
 	m.Set(1, 128) // insert
 	value, ok := m.Get(1)
-	require.True(t, ok)
+	assert.True(t, ok)
 	assert.Equal(t, 128, value)
 
 	m.Set(2, 200) // insert
 	assert.Equal(t, 2, m.Len())
 	value, ok = m.Get(2)
-	require.True(t, ok)
+	assert.True(t, ok)
 	assert.Equal(t, 200, value)
 }
 
@@ -83,13 +82,13 @@ func TestSetFloat32(t *testing.T) {
 
 	m.Set(1.1, 128) // insert
 	value, ok := m.Get(1.1)
-	require.True(t, ok)
+	assert.True(t, ok)
 	assert.Equal(t, 128, value)
 
 	m.Set(2.2, 200) // insert
 	assert.Equal(t, 2, m.Len())
 	value, ok = m.Get(2.2)
-	require.True(t, ok)
+	assert.True(t, ok)
 	assert.Equal(t, 200, value)
 }
 
@@ -99,13 +98,13 @@ func TestSetInt64(t *testing.T) {
 
 	m.Set(1, 128) // insert
 	value, ok := m.Get(1)
-	require.True(t, ok)
+	assert.True(t, ok)
 	assert.Equal(t, 128, value)
 
 	m.Set(2, 200) // insert
 	assert.Equal(t, 2, m.Len())
 	value, ok = m.Get(2)
-	require.True(t, ok)
+	assert.True(t, ok)
 	assert.Equal(t, 200, value)
 }
 
@@ -116,24 +115,24 @@ func TestInsert(t *testing.T) {
 	monkey := "monkey"
 
 	inserted := m.Insert(1, elephant)
-	require.True(t, inserted)
+	assert.True(t, inserted)
 	value, ok := m.Get(1)
-	require.True(t, ok)
+	assert.True(t, ok)
 	assert.Equal(t, elephant, value)
 
 	inserted = m.Insert(1, monkey)
-	require.False(t, inserted)
+	assert.False(t, inserted)
 	value, ok = m.Get(1)
-	require.True(t, ok)
+	assert.True(t, ok)
 	assert.Equal(t, elephant, value)
 
 	assert.Equal(t, 1, m.Len())
 
 	inserted = m.Insert(2, monkey)
-	require.True(t, inserted)
+	assert.True(t, inserted)
 	assert.Equal(t, 2, m.Len())
 	value, ok = m.Get(2)
-	require.True(t, ok)
+	assert.True(t, ok)
 	assert.Equal(t, monkey, value)
 }
 
@@ -141,7 +140,7 @@ func TestGetNonExistingItem(t *testing.T) {
 	t.Parallel()
 	m := New[int, string]()
 	value, ok := m.Get(1)
-	require.False(t, ok)
+	assert.False(t, ok)
 	assert.Equal(t, "", value)
 }
 
@@ -160,7 +159,7 @@ func TestGrow(t *testing.T) {
 	store := m.store.Load()
 	log := int(math.Log2(64))
 	expectedSize := uintptr(strconv.IntSize - log)
-	assert.EqualValues(t, expectedSize, store.keyShifts)
+	assert.Equal(t, expectedSize, store.keyShifts)
 }
 
 func TestResize(t *testing.T) {
@@ -172,7 +171,7 @@ func TestResize(t *testing.T) {
 		m.Set(i, strconv.Itoa(int(i)))
 	}
 
-	assert.EqualValues(t, itemCount, m.Len())
+	assert.Equal(t, itemCount, m.Len())
 
 	for { // make sure to wait for resize operation to finish
 		if m.resizing.Load() == 0 {
@@ -185,7 +184,7 @@ func TestResize(t *testing.T) {
 
 	for i := uintptr(0); i < itemCount; i++ {
 		value, ok := m.Get(i)
-		require.True(t, ok)
+		assert.True(t, ok)
 		expected := strconv.Itoa(int(i))
 		assert.Equal(t, expected, value)
 	}
@@ -263,10 +262,10 @@ func TestRange(t *testing.T) {
 		return true
 	})
 
-	assert.Len(t, items, itemCount)
+	assert.Equal(t, itemCount, len(items))
 	for i := 1; i <= itemCount; i++ {
 		value, ok := items[i]
-		require.True(t, ok)
+		assert.True(t, ok)
 		expected := strconv.Itoa(i)
 		assert.Equal(t, expected, value)
 	}
@@ -276,7 +275,7 @@ func TestRange(t *testing.T) {
 		items[key] = value
 		return false
 	})
-	assert.Len(t, items, 1)
+	assert.Equal(t, 1, len(items))
 }
 
 // nolint: funlen, gocognit
@@ -434,6 +433,6 @@ func TestConcurrentInsertDelete(t *testing.T) {
 
 		assert.Equal(t, 3, l.Len())
 		_, found, _ := l.search(nil, newIl.keyHash, newIl.key)
-		assert.NotNil(t, found)
+		assert.True(t, found != nil)
 	}
 }

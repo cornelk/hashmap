@@ -3,14 +3,14 @@ package hashmap
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/cornelk/hashmap/assert"
 )
 
 func TestListNew(t *testing.T) {
 	l := NewList[uintptr, uintptr]()
 	node := l.First()
-	assert.Nil(t, node)
+	assert.True(t, node == nil)
 
 	node = l.head.Next()
-	assert.Nil(t, node)
+	assert.True(t, node == nil)
 }

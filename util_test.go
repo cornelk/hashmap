@@ -3,8 +3,7 @@ package hashmap
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
+	"github.com/cornelk/hashmap/assert"
 )
 
 func TestLog2(t *testing.T) {
@@ -33,16 +32,16 @@ func TestHashCollision(t *testing.T) {
 	m.SetHasher(staticHasher)
 
 	inserted := m.Insert("1", 1)
-	require.True(t, inserted)
+	assert.True(t, inserted)
 	inserted = m.Insert("2", 2)
-	require.True(t, inserted)
+	assert.True(t, inserted)
 
 	value, ok := m.Get("1")
-	require.True(t, ok)
+	assert.True(t, ok)
 	assert.Equal(t, 1, value)
 
 	value, ok = m.Get("2")
-	require.True(t, ok)
+	assert.True(t, ok)
 	assert.Equal(t, 2, value)
 }
 
@@ -52,9 +51,9 @@ func TestAliasTypeSupport(t *testing.T) {
 	m := New[alias, alias]()
 
 	inserted := m.Insert(1, 1)
-	require.True(t, inserted)
+	assert.True(t, inserted)
 
 	value, ok := m.Get(1)
-	require.True(t, ok)
-	assert.EqualValues(t, 1, value)
+	assert.True(t, ok)
+	assert.Equal(t, 1, value)
 }
