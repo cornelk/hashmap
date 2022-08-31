@@ -9,29 +9,33 @@
 
 A Golang lock-free thread-safe HashMap optimized for fastest read access.
 
-It requires Golang 1.19+ as it makes use of Generics and the new atomic package helpers. 
+It is not a general-use HashMap and currently has slow write performance for write heavy uses.
 
-***Warning: This library is experimental, there are currently no known bugs but more battle-testing is needed.***
+The minimal supported Golang version is 1.19 as it makes use of Generics and the new atomic package helpers.
 
 ## Usage
 
-Only Go comparable types are supported as keys.
+For `New()` only Go numeric types are supported. For string keyed maps `NewString` has to be used.
 
-Set a value for a key in the map:
+Example uint8 key map uses:
 
 ```
-m := New[string, int]()
+m := New[uint8, int]()
+m.Set(1, 123)
+value, ok := m.Get(1)
+```
+
+Example string key map uses:
+
+```
+m := NewString[string, int]()
 m.Set("amount", 123)
-```
-
-Read a value for a key from the map:
-```
 value, ok := m.Get("amount")
 ```
 
-Use the map to count URL requests:
+Using the map to count URL requests:
 ```
-m := New[string, *int64]()
+m := NewString[string, *int64]()
 var i int64
 counter, _ := m.GetOrInsert("api/123", &i)
 atomic.AddInt64(counter, 1) // increase counter
@@ -41,43 +45,33 @@ count := atomic.LoadInt64(counter) // read counter
 
 ## Benchmarks
 
-Reading from the hash map in a thread-safe way is nearly as fast as reading from a standard Golang map
-in an unsafe way and twice as fast as Go's `sync.Map`:
+Reading from the hash map for numeric key types in a thread-safe way is faster than reading from a standard Golang map
+in an unsafe way and four times faster than Golang's `sync.Map`:
 
 ```
-BenchmarkReadHashMapUint-8                	 1601247	       754.2 ns/op
-BenchmarkReadHaxMapUint-8                 	 1519165	       788.3 ns/op
-BenchmarkReadGoMapUintUnsafe-8            	 1560886	       762.8 ns/op
-BenchmarkReadGoMapUintMutex-8             	   42284	     28232 ns/op
-BenchmarkReadGoSyncMapUint-8              	  468338	      2672 ns/op
+BenchmarkReadHashMapUint-8                	 1788601	       668.4 ns/op
+BenchmarkReadHaxMapUint-8                 	 1691654	       709.6 ns/op
+BenchmarkReadGoMapUintUnsafe-8            	 1516452	       784.4 ns/op
+BenchmarkReadGoMapUintMutex-8             	   39429	     27978 ns/op
+BenchmarkReadGoSyncMapUint-8              	  446930	      2544 ns/op
 ```
 
 Reading from the map while writes are happening:
 ```
-BenchmarkReadHashMapWithWritesUint-8      	 1268134	       941.6 ns/op
-BenchmarkReadHaxMapWithWritesUint-8       	 1000000	      1045 ns/op
-BenchmarkReadGoSyncMapWithWritesUint-8    	  369918	      3149 ns/op
+BenchmarkReadHashMapWithWritesUint-8      	 1418299	       856.4 ns/op
+BenchmarkReadHaxMapWithWritesUint-8       	 1262414	       948.5 ns/op
+BenchmarkReadGoSyncMapWithWritesUint-8    	  382785	      3240 ns/op
 ```
 
 Write performance without any concurrent reads:
 
 ```
-BenchmarkWriteHashMapUint-8               	   15384	     79032 ns/op
-BenchmarkWriteGoMapMutexUint-8            	   74569	     14874 ns/op
-BenchmarkWriteGoSyncMapUint-8             	   10000	    107094 ns/op
+BenchmarkWriteHashMapUint-8               	   54756	     21977 ns/op
+BenchmarkWriteGoMapMutexUint-8            	   83907	     14827 ns/op
+BenchmarkWriteGoSyncMapUint-8             	   16983	     70305 ns/op
 ```
 
-The benchmarks were run with Golang 1.19.0 on Linux using `make benchmark`.
-
-### Benefits over Golang's builtin map
-
-* Faster
-
-* thread-safe access without need of a mutex
-
-### Benefits over [Golang's sync.Map](https://golang.org/pkg/sync/#Map)
-
-* Faster
+The benchmarks were run with Golang 1.19.0 on Linux and AMD64 using `make benchmark`.
 
 ## Technical details
 
@@ -94,3 +88,5 @@ The benchmarks were run with Golang 1.19.0 on Linux using `make benchmark`.
   When the slice reaches a defined fill rate, a bigger slice is allocated and all keys are recalculated and transferred into the new slice.
 
 * For hashing, specialized xxhash implementations are used that match the size of the key type where available
+
+* A specialized String version of the map exists due to a limitation of type switches of parametric types - see https://github.com/golang/go/issues/45380 for more info.

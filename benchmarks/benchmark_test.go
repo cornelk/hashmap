@@ -12,7 +12,7 @@ import (
 
 const benchmarkItemCount = 1024
 
-func setupHashMap(b *testing.B) *hashmap.HashMap[uintptr, uintptr] {
+func setupHashMap(b *testing.B) *hashmap.Map[uintptr, uintptr] {
 	b.Helper()
 
 	m := hashmap.New[uintptr, uintptr]()
@@ -32,10 +32,10 @@ func setupHaxMap(b *testing.B) *haxmap.HashMap[uintptr, uintptr] {
 	return m
 }
 
-func setupHashMapString(b *testing.B) (*hashmap.HashMap[string, string], []string) {
+func setupHashMapString(b *testing.B) (*hashmap.MapString[string, string], []string) {
 	b.Helper()
 
-	m := hashmap.New[string, string]()
+	m := hashmap.NewString[string, string]()
 	keys := make([]string, benchmarkItemCount)
 	for i := 0; i < benchmarkItemCount; i++ {
 		s := strconv.Itoa(i)
@@ -133,22 +133,6 @@ func BenchmarkReadHashMapString(b *testing.B) {
 				s := keys[i]
 				sVal, _ := m.Get(s)
 				if sVal != s {
-					b.Fail()
-				}
-			}
-		}
-	})
-}
-
-func BenchmarkReadHashMapInterface(b *testing.B) {
-	m := setupHashMap(b)
-	b.ResetTimer()
-
-	b.RunParallel(func(pb *testing.PB) {
-		for pb.Next() {
-			for i := uintptr(0); i < benchmarkItemCount; i++ {
-				j, _ := m.Get(i)
-				if j != i {
 					b.Fail()
 				}
 			}

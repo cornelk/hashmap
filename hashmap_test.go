@@ -109,24 +109,6 @@ func TestSetInt64(t *testing.T) {
 	assert.Equal(t, 200, value)
 }
 
-func TestSetComplex128(t *testing.T) {
-	t.Parallel()
-	m := New[complex128, int]()
-
-	comp1 := complex(float64(5), float64(10))
-	m.Set(comp1, 128) // insert
-	value, ok := m.Get(comp1)
-	require.True(t, ok)
-	assert.Equal(t, 128, value)
-
-	comp2 := complex(float64(5), float64(20))
-	m.Set(comp2, 200) // insert
-	assert.Equal(t, 2, m.Len())
-	value, ok = m.Get(comp2)
-	require.True(t, ok)
-	assert.Equal(t, 200, value)
-}
-
 func TestInsert(t *testing.T) {
 	t.Parallel()
 	m := New[int, string]()
@@ -382,7 +364,7 @@ func TestHashMap_parallel(t *testing.T) {
 
 func TestHashMap_SetConcurrent(t *testing.T) {
 	t.Parallel()
-	m := New[string, int]()
+	m := NewString[string, int]()
 
 	var wg sync.WaitGroup
 	for i := 0; i < 100; i++ {

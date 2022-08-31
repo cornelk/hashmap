@@ -5,7 +5,10 @@ lint: ## run code linters
 	golangci-lint run
 
 benchmark: ## run benchmarks
-	cd benchmarks && go test -cpu 8 -run=^# -bench=.
+	cd benchmarks && perflock go test -cpu 8 -run=^# -bench=.
+
+benchmark-perflock: ## run benchmarks using perflock - https://github.com/aclements/perflock
+	cd benchmarks && perflock -governor 80% go test -count 3 -cpu 8 -run=^# -bench=.
 
 test: ## run tests
 	go test -race ./...
@@ -20,3 +23,11 @@ test-coverage-web: test-coverage ## run unit tests and show test coverage in bro
 
 install-linters: ## install all used linters
 	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $$(go env GOPATH)/bin v1.49.0
+
+alternatives: ## generate alternative non numeric hashmap versions
+	cp hashmap.go hashmap_string.go
+	sed -i 's,Map,MapString,' hashmap_string.go
+	sed -i 's,New\[,NewString\[,' hashmap_string.go
+	sed -i 's,// New,// NewString,' hashmap_string.go
+	sed -i 's,NewSized,NewStringSized,' hashmap_string.go
+	sed -i 's,numeric,string,' hashmap_string.go

@@ -23,8 +23,8 @@ func TestLog2(t *testing.T) {
 	}
 }
 
-func TestInsertCollision(t *testing.T) {
-	m := New[string, int]()
+func TestHashCollision(t *testing.T) {
+	m := NewString[string, int]()
 
 	staticHasher := func(key string) uintptr {
 		return 4 // chosen by fair dice roll. guaranteed to be random.
@@ -44,4 +44,17 @@ func TestInsertCollision(t *testing.T) {
 	value, ok = m.Get("2")
 	require.True(t, ok)
 	assert.Equal(t, 2, value)
+}
+
+func TestAliasTypeSupport(t *testing.T) {
+	type alias uintptr
+
+	m := New[alias, alias]()
+
+	inserted := m.Insert(1, 1)
+	require.True(t, inserted)
+
+	value, ok := m.Get(1)
+	require.True(t, ok)
+	assert.EqualValues(t, 1, value)
 }
