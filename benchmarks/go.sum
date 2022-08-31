@@ -8,6 +8,10 @@ github.com/alphadose/haxmap v0.2.2-0.20220829041207-9dcd5e601a18 h1:TKxqcdbOHjdE
 github.com/alphadose/haxmap v0.2.2-0.20220829041207-9dcd5e601a18/go.mod h1:Fu37Wlmj7cR++vSLgRTu3fGy8wpjHGmMypM2aclkc1A=
 github.com/alphadose/haxmap v0.2.2 h1:Dl74rdR4W00rw4qZj4itaEYsVSETn3hh4oMnjbD8AJM=
 github.com/alphadose/haxmap v0.2.2/go.mod h1:Fu37Wlmj7cR++vSLgRTu3fGy8wpjHGmMypM2aclkc1A=
+github.com/alphadose/haxmap v0.2.3-0.20220831011845-eee8abe05d83 h1:lvLThENZJIV2prJKB1YNFjz/zc/G3X1FS9hsYXO0frs=
+github.com/alphadose/haxmap v0.2.3-0.20220831011845-eee8abe05d83/go.mod h1:Fu37Wlmj7cR++vSLgRTu3fGy8wpjHGmMypM2aclkc1A=
+github.com/alphadose/haxmap v0.3.1-0.20220831034947-0d601bb44159 h1:Vy5DvT2YgH2NsdIEZQDZztNZdzIkL/I8ZxInZjPRdj0=
+github.com/alphadose/haxmap v0.3.1-0.20220831034947-0d601bb44159/go.mod h1:Fu37Wlmj7cR++vSLgRTu3fGy8wpjHGmMypM2aclkc1A=
 github.com/cespare/xxhash v1.1.0 h1:a6HrQnmkObjyL+Gs60czilIUGqrzKutQD6XZog3p+ko=
 github.com/cespare/xxhash v1.1.0/go.mod h1:XrSqR1VqqWfGrhpAt58auRo0WTKS1nRRg3ghfAqPWnc=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=

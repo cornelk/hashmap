@@ -1,4 +1,4 @@
-// Package hashmap provides a lock-free and thread-safe HashMap.
+// Package hashmap provides a lock-free and thread-safe HashMapString.
 package hashmap
 
 import (
@@ -10,8 +10,8 @@ import (
 	"unsafe"
 )
 
-// Map implements a read optimized hash map.
-type Map[Key numeric, Value any] struct {
+// MapString implements a read optimized hash map.
+type MapString[Key string, Value any] struct {
 	hasher     func(Key) uintptr
 	store      atomic.Pointer[store[Key, Value]] // pointer to a map instance that gets replaced if the map resizes
 	linkedList *List[Key, Value]                 // key sorted linked list of elements
@@ -20,31 +20,31 @@ type Map[Key numeric, Value any] struct {
 	resizing atomic.Uintptr
 }
 
-// New returns a new map instance.
-func New[Key numeric, Value any]() *Map[Key, Value] {
-	return NewSized[Key, Value](defaultSize)
+// NewString returns a new map instance.
+func NewString[Key string, Value any]() *MapString[Key, Value] {
+	return NewStringSized[Key, Value](defaultSize)
 }
 
-// NewSized returns a new map instance with a specific initialization size.
-func NewSized[Key numeric, Value any](size uintptr) *Map[Key, Value] {
-	m := &Map[Key, Value]{}
+// NewStringSized returns a new map instance with a specific initialization size.
+func NewStringSized[Key string, Value any](size uintptr) *MapString[Key, Value] {
+	m := &MapString[Key, Value]{}
 	m.allocate(size)
 	m.setDefaultHasher()
 	return m
 }
 
 // SetHasher sets a custom hasher.
-func (m *Map[Key, Value]) SetHasher(hasher func(Key) uintptr) {
+func (m *MapString[Key, Value]) SetHasher(hasher func(Key) uintptr) {
 	m.hasher = hasher
 }
 
 // Len returns the number of elements within the map.
-func (m *Map[Key, Value]) Len() int {
+func (m *MapString[Key, Value]) Len() int {
 	return m.linkedList.Len()
 }
 
 // Get retrieves an element from the map under given hash key.
-func (m *Map[Key, Value]) Get(key Key) (Value, bool) {
+func (m *MapString[Key, Value]) Get(key Key) (Value, bool) {
 	hash := m.hasher(key)
 
 	for element := m.store.Load().item(hash); element != nil; element = element.Next() {
@@ -62,7 +62,7 @@ func (m *Map[Key, Value]) Get(key Key) (Value, bool) {
 // GetOrInsert returns the existing value for the key if present.
 // Otherwise, it stores and returns the given value.
 // The returned bool is true if the value was loaded, false if stored.
-func (m *Map[Key, Value]) GetOrInsert(key Key, value Value) (Value, bool) {
+func (m *MapString[Key, Value]) GetOrInsert(key Key, value Value) (Value, bool) {
 	hash := m.hasher(key)
 	var newElement *ListElement[Key, Value]
 
@@ -93,7 +93,7 @@ func (m *Map[Key, Value]) GetOrInsert(key Key, value Value) (Value, bool) {
 }
 
 // FillRate returns the fill rate of the map as a percentage integer.
-func (m *Map[Key, Value]) FillRate() int {
+func (m *MapString[Key, Value]) FillRate() int {
 	store := m.store.Load()
 	count := int(store.count.Load())
 	l := len(store.index)
@@ -101,7 +101,7 @@ func (m *Map[Key, Value]) FillRate() int {
 }
 
 // Del deletes the key from the map and returns whether the key was deleted.
-func (m *Map[Key, Value]) Del(key Key) bool {
+func (m *MapString[Key, Value]) Del(key Key) bool {
 	hash := m.hasher(key)
 	store := m.store.Load()
 	element := store.item(hash)
@@ -124,7 +124,7 @@ func (m *Map[Key, Value]) Del(key Key) bool {
 // If a resizing operation is happening concurrently while calling Insert, the item might show up in the map
 // after the resize operation is finished.
 // Returns true if the item was inserted or false if it existed.
-func (m *Map[Key, Value]) Insert(key Key, value Value) bool {
+func (m *MapString[Key, Value]) Insert(key Key, value Value) bool {
 	hash := m.hasher(key)
 	var (
 		existed, inserted bool
@@ -161,7 +161,7 @@ func (m *Map[Key, Value]) Insert(key Key, value Value) bool {
 // Set sets the value under the specified key to the map. An existing item for this key will be overwritten.
 // If a resizing operation is happening concurrently while calling Set, the item might show up in the map
 // after the resize operation is finished.
-func (m *Map[Key, Value]) Set(key Key, value Value) {
+func (m *MapString[Key, Value]) Set(key Key, value Value) {
 	hash := m.hasher(key)
 
 	for {
@@ -190,14 +190,14 @@ func (m *Map[Key, Value]) Set(key Key, value Value) {
 // To double the size of the map use newSize 0.
 // This function returns immediately, the resize operation is done in a goroutine.
 // No resizing is done in case of another resize operation already being in progress.
-func (m *Map[Key, Value]) Grow(newSize uintptr) {
+func (m *MapString[Key, Value]) Grow(newSize uintptr) {
 	if m.resizing.CompareAndSwap(0, 1) {
 		go m.grow(newSize, true)
 	}
 }
 
 // String returns the map as a string, only hashed keys are printed.
-func (m *Map[Key, Value]) String() string {
+func (m *MapString[Key, Value]) String() string {
 	buffer := bytes.NewBufferString("")
 	buffer.WriteRune('[')
 
@@ -217,7 +217,7 @@ func (m *Map[Key, Value]) String() string {
 
 // Range calls f sequentially for each key and value present in the map.
 // If f returns false, range stops the iteration.
-func (m *Map[Key, Value]) Range(f func(Key, Value) bool) {
+func (m *MapString[Key, Value]) Range(f func(Key, Value) bool) {
 	item := m.linkedList.First()
 
 	for item != nil {
@@ -229,20 +229,20 @@ func (m *Map[Key, Value]) Range(f func(Key, Value) bool) {
 	}
 }
 
-func (m *Map[Key, Value]) allocate(newSize uintptr) {
+func (m *MapString[Key, Value]) allocate(newSize uintptr) {
 	m.linkedList = NewList[Key, Value]()
 	if m.resizing.CompareAndSwap(0, 1) {
 		m.grow(newSize, false)
 	}
 }
 
-func (m *Map[Key, Value]) isResizeNeeded(store *store[Key, Value], count uintptr) bool {
+func (m *MapString[Key, Value]) isResizeNeeded(store *store[Key, Value], count uintptr) bool {
 	l := uintptr(len(store.index)) // l can't be 0 as it gets initialized in New()
 	fillRate := (count * 100) / l
 	return fillRate > maxFillRate
 }
 
-func (m *Map[Key, Value]) insertElement(element *ListElement[Key, Value], hash uintptr, key Key, value Value) bool {
+func (m *MapString[Key, Value]) insertElement(element *ListElement[Key, Value], hash uintptr, key Key, value Value) bool {
 	var existed, inserted bool
 
 	for {
@@ -274,7 +274,7 @@ func (m *Map[Key, Value]) insertElement(element *ListElement[Key, Value], hash u
 }
 
 // deleteElement deletes an element from index.
-func (m *Map[Key, Value]) deleteElement(element *ListElement[Key, Value]) {
+func (m *MapString[Key, Value]) deleteElement(element *ListElement[Key, Value]) {
 	for {
 		store := m.store.Load()
 		index := element.keyHash >> store.keyShifts
@@ -293,7 +293,7 @@ func (m *Map[Key, Value]) deleteElement(element *ListElement[Key, Value]) {
 	}
 }
 
-func (m *Map[Key, Value]) grow(newSize uintptr, loop bool) {
+func (m *MapString[Key, Value]) grow(newSize uintptr, loop bool) {
 	defer m.resizing.CompareAndSwap(1, 0)
 
 	for {
@@ -332,7 +332,7 @@ func (m *Map[Key, Value]) grow(newSize uintptr, loop bool) {
 	}
 }
 
-func (m *Map[Key, Value]) fillIndexItems(store *store[Key, Value]) {
+func (m *MapString[Key, Value]) fillIndexItems(store *store[Key, Value]) {
 	first := m.linkedList.First()
 	item := first
 	lastIndex := uintptr(0)
