@@ -73,16 +73,6 @@ BenchmarkWriteGoSyncMapUint-8             	   16983	     70305 ns/op
 
 The benchmarks were run with Golang 1.19.0 on Linux and AMD64 using `make benchmark`.
 
-### Benefits over Golang's builtin map
-
-* Faster
-
-* thread-safe access without need of a mutex
-
-### Benefits over [Golang's sync.Map](https://golang.org/pkg/sync/#Map)
-
-* Faster
-
 ## Technical details
 
 * Technical design decisions have been made based on benchmarks that are stored in an external repository:
