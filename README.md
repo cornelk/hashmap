@@ -15,8 +15,6 @@ The minimal supported Golang version is 1.19 as it makes use of Generics and the
 
 ## Usage
 
-For `New()` only Go numeric types are supported. For string keyed maps `NewString` has to be used.
-
 Example uint8 key map uses:
 
 ```
@@ -28,14 +26,14 @@ value, ok := m.Get(1)
 Example string key map uses:
 
 ```
-m := NewString[string, int]()
+m := New[string, int]()
 m.Set("amount", 123)
 value, ok := m.Get("amount")
 ```
 
 Using the map to count URL requests:
 ```
-m := NewString[string, *int64]()
+m := New[string, *int64]()
 var i int64
 counter, _ := m.GetOrInsert("api/123", &i)
 atomic.AddInt64(counter, 1) // increase counter
@@ -49,18 +47,18 @@ Reading from the hash map for numeric key types in a thread-safe way is faster t
 in an unsafe way and four times faster than Golang's `sync.Map`:
 
 ```
-BenchmarkReadHashMapUint-8                	 1788601	       668.4 ns/op
-BenchmarkReadHaxMapUint-8                 	 1691654	       709.6 ns/op
-BenchmarkReadGoMapUintUnsafe-8            	 1516452	       784.4 ns/op
-BenchmarkReadGoMapUintMutex-8             	   39429	     27978 ns/op
-BenchmarkReadGoSyncMapUint-8              	  446930	      2544 ns/op
+BenchmarkReadHashMapUint-8                	 1774460	       677.3 ns/op
+BenchmarkReadHaxMapUint-8                 	 1758708	       679.0 ns/op
+BenchmarkReadGoMapUintUnsafe-8            	 1497732	       790.9 ns/op
+BenchmarkReadGoMapUintMutex-8             	   41562	     28672 ns/op
+BenchmarkReadGoSyncMapUint-8              	  454401	      2646 ns/op
 ```
 
 Reading from the map while writes are happening:
 ```
-BenchmarkReadHashMapWithWritesUint-8      	 1418299	       856.4 ns/op
-BenchmarkReadHaxMapWithWritesUint-8       	 1262414	       948.5 ns/op
-BenchmarkReadGoSyncMapWithWritesUint-8    	  382785	      3240 ns/op
+BenchmarkReadHashMapWithWritesUint-8      	 1388560	       859.1 ns/op
+BenchmarkReadHaxMapWithWritesUint-8       	 1306671	       914.5 ns/op
+BenchmarkReadGoSyncMapWithWritesUint-8    	  335732	      3113 ns/op
 ```
 
 Write performance without any concurrent reads:
@@ -88,5 +86,3 @@ The benchmarks were run with Golang 1.19.0 on Linux and AMD64 using `make benchm
   When the slice reaches a defined fill rate, a bigger slice is allocated and all keys are recalculated and transferred into the new slice.
 
 * For hashing, specialized xxhash implementations are used that match the size of the key type where available
-
-* A specialized String version of the map exists due to a limitation of type switches of parametric types - see https://github.com/golang/go/issues/45380 for more info.

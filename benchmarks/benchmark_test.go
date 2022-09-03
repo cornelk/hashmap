@@ -32,10 +32,10 @@ func setupHaxMap(b *testing.B) *haxmap.HashMap[uintptr, uintptr] {
 	return m
 }
 
-func setupHashMapString(b *testing.B) (*hashmap.MapString[string, string], []string) {
+func setupHashMapString(b *testing.B) (*hashmap.Map[string, string], []string) {
 	b.Helper()
 
-	m := hashmap.NewString[string, string]()
+	m := hashmap.New[string, string]()
 	keys := make([]string, benchmarkItemCount)
 	for i := 0; i < benchmarkItemCount; i++ {
 		s := strconv.Itoa(i)

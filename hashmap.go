@@ -11,7 +11,7 @@ import (
 )
 
 // Map implements a read optimized hash map.
-type Map[Key numeric, Value any] struct {
+type Map[Key hashable, Value any] struct {
 	hasher     func(Key) uintptr
 	store      atomic.Pointer[store[Key, Value]] // pointer to a map instance that gets replaced if the map resizes
 	linkedList *List[Key, Value]                 // key sorted linked list of elements
@@ -21,12 +21,12 @@ type Map[Key numeric, Value any] struct {
 }
 
 // New returns a new map instance.
-func New[Key numeric, Value any]() *Map[Key, Value] {
+func New[Key hashable, Value any]() *Map[Key, Value] {
 	return NewSized[Key, Value](defaultSize)
 }
 
 // NewSized returns a new map instance with a specific initialization size.
-func NewSized[Key numeric, Value any](size uintptr) *Map[Key, Value] {
+func NewSized[Key hashable, Value any](size uintptr) *Map[Key, Value] {
 	m := &Map[Key, Value]{}
 	m.allocate(size)
 	m.setDefaultHasher()

@@ -2,3 +2,5 @@ github.com/alphadose/haxmap v0.3.1-0.20220831034947-0d601bb44159 h1:Vy5DvT2YgH2N
 github.com/alphadose/haxmap v0.3.1-0.20220831034947-0d601bb44159/go.mod h1:Fu37Wlmj7cR++vSLgRTu3fGy8wpjHGmMypM2aclkc1A=
 github.com/alphadose/haxmap v0.3.1-0.20220831135524-f7fd3700af2e h1:wNcWJlc0StruM5i6yPyrDYQDO3pxrxm1b/U2boezeVI=
 github.com/alphadose/haxmap v0.3.1-0.20220831135524-f7fd3700af2e/go.mod h1:Fu37Wlmj7cR++vSLgRTu3fGy8wpjHGmMypM2aclkc1A=
+github.com/alphadose/haxmap v0.3.1 h1:P02INS0xIwY0R3E+KRJTPtrlwTvRPYoU2GgoeRk2KbU=
+github.com/alphadose/haxmap v0.3.1/go.mod h1:Fu37Wlmj7cR++vSLgRTu3fGy8wpjHGmMypM2aclkc1A=

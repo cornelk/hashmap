@@ -60,9 +60,9 @@ func TestSetUint8(t *testing.T) {
 	assert.Equal(t, 200, value)
 }
 
-func TestSetUint16(t *testing.T) {
+func TestSetInt16(t *testing.T) {
 	t.Parallel()
-	m := New[uint16, int]()
+	m := New[int16, int]()
 
 	m.Set(1, 128) // insert
 	value, ok := m.Get(1)
@@ -79,6 +79,22 @@ func TestSetUint16(t *testing.T) {
 func TestSetFloat32(t *testing.T) {
 	t.Parallel()
 	m := New[float32, int]()
+
+	m.Set(1.1, 128) // insert
+	value, ok := m.Get(1.1)
+	assert.True(t, ok)
+	assert.Equal(t, 128, value)
+
+	m.Set(2.2, 200) // insert
+	assert.Equal(t, 2, m.Len())
+	value, ok = m.Get(2.2)
+	assert.True(t, ok)
+	assert.Equal(t, 200, value)
+}
+
+func TestSetFloat64(t *testing.T) {
+	t.Parallel()
+	m := New[float64, int]()
 
 	m.Set(1.1, 128) // insert
 	value, ok := m.Get(1.1)
@@ -363,7 +379,7 @@ func TestHashMap_parallel(t *testing.T) {
 
 func TestHashMap_SetConcurrent(t *testing.T) {
 	t.Parallel()
-	m := NewString[string, int]()
+	m := New[string, int]()
 
 	var wg sync.WaitGroup
 	for i := 0; i < 100; i++ {

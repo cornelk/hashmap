@@ -23,11 +23,3 @@ test-coverage-web: test-coverage ## run unit tests and show test coverage in bro
 
 install-linters: ## install all used linters
 	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $$(go env GOPATH)/bin v1.49.0
-
-alternatives: ## generate alternative non numeric hashmap versions
-	cp hashmap.go hashmap_string.go
-	sed -i 's,Map,MapString,' hashmap_string.go
-	sed -i 's,New\[,NewString\[,' hashmap_string.go
-	sed -i 's,// New,// NewString,' hashmap_string.go
-	sed -i 's,NewSized,NewStringSized,' hashmap_string.go
-	sed -i 's,numeric,string,' hashmap_string.go

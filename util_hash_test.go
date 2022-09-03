@@ -39,7 +39,7 @@ func TestHashingUint8(t *testing.T) {
 }
 
 func TestHashingString(t *testing.T) {
-	m := NewString[string, uint8]()
+	m := New[string, uint8]()
 	assert.Equal(t, uintptr(0x6a1faf26e7da4cb9), m.hasher("properunittesting"))
 	assert.Equal(t, uintptr(0x2d4ff7e12135f1f3), m.hasher("longstringlongstringlongstringlongstring"))
 }

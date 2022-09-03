@@ -11,7 +11,7 @@ import (
 // TestAPICounter shows how to use the hashmap to count REST server API calls.
 func TestAPICounter(t *testing.T) {
 	t.Parallel()
-	m := NewString[string, *int64]()
+	m := New[string, *int64]()
 
 	for i := 0; i < 100; i++ {
 		s := fmt.Sprintf("/api%d/", i%4)
@@ -28,7 +28,7 @@ func TestAPICounter(t *testing.T) {
 }
 
 func TestExample(t *testing.T) {
-	m := NewString[string, int]()
+	m := New[string, int]()
 	m.Set("amount", 123)
 	value, ok := m.Get("amount")
 	assert.True(t, ok)
