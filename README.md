@@ -47,29 +47,30 @@ Reading from the hash map for numeric key types in a thread-safe way is faster t
 in an unsafe way and four times faster than Golang's `sync.Map`:
 
 ```
-BenchmarkReadHashMapUint-8                	 1774460	       677.3 ns/op
-BenchmarkReadHaxMapUint-8                 	 1758708	       679.0 ns/op
-BenchmarkReadGoMapUintUnsafe-8            	 1497732	       790.9 ns/op
-BenchmarkReadGoMapUintMutex-8             	   41562	     28672 ns/op
-BenchmarkReadGoSyncMapUint-8              	  454401	      2646 ns/op
+BenchmarkReadHashMapUint-8                	 1799533	       671.2 ns/op
+BenchmarkReadHaxMapUint-8                 	 1742451	       684.2 ns/op (buggy, can deadlock on write)
+BenchmarkReadGoMapUintUnsafe-8            	 1652151	       727.5 ns/op
+BenchmarkReadGoMapUintMutex-8             	   40504	     29700 ns/op
+BenchmarkReadGoSyncMapUint-8              	  455295	      2617 ns/op
+BenchmarkReadSkipMapUint-8                	  462244	      3629 ns/op
 ```
 
 Reading from the map while writes are happening:
 ```
-BenchmarkReadHashMapWithWritesUint-8      	 1388560	       859.1 ns/op
-BenchmarkReadHaxMapWithWritesUint-8       	 1306671	       914.5 ns/op
-BenchmarkReadGoSyncMapWithWritesUint-8    	  335732	      3113 ns/op
+BenchmarkReadHashMapWithWritesUint-8      	 1390100	       858.0 ns/op
+BenchmarkReadHaxMapWithWritesUint-8       	 1299464	       932.4 ns/op (buggy, can deadlock on write)
+BenchmarkReadGoSyncMapWithWritesUint-8    	  379136	      3171 ns/op
 ```
 
 Write performance without any concurrent reads:
 
 ```
-BenchmarkWriteHashMapUint-8               	   54756	     21977 ns/op
-BenchmarkWriteGoMapMutexUint-8            	   83907	     14827 ns/op
-BenchmarkWriteGoSyncMapUint-8             	   16983	     70305 ns/op
+BenchmarkWriteHashMapUint-8               	   52714	     22404 ns/op
+BenchmarkWriteGoMapMutexUint-8            	   79504	     14680 ns/op
+BenchmarkWriteGoSyncMapUint-8             	   17625	     67081 ns/op
 ```
 
-The benchmarks were run with Golang 1.19.0 on Linux and AMD64 using `make benchmark`.
+The benchmarks were run with Golang 1.19.1 on Linux and AMD64 using `make benchmark`.
 
 ## Technical details
 

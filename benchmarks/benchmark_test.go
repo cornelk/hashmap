@@ -8,6 +8,7 @@ import (
 
 	"github.com/alphadose/haxmap"
 	"github.com/cornelk/hashmap"
+	"github.com/zhangyunhao116/skipmap"
 )
 
 const benchmarkItemCount = 1024
@@ -28,6 +29,16 @@ func setupHaxMap(b *testing.B) *haxmap.HashMap[uintptr, uintptr] {
 	m := haxmap.New[uintptr, uintptr]()
 	for i := uintptr(0); i < benchmarkItemCount; i++ {
 		m.Set(i, i)
+	}
+	return m
+}
+
+func setupSkipMap(b *testing.B) *skipmap.Uint64Map[uint64] {
+	b.Helper()
+
+	m := skipmap.NewUint64[uint64]()
+	for i := uint64(0); i < benchmarkItemCount; i++ {
+		m.Store(i, i)
 	}
 	return m
 }
@@ -176,6 +187,22 @@ func BenchmarkReadHaxMapWithWritesUint(b *testing.B) {
 					if j != i {
 						b.Fail()
 					}
+				}
+			}
+		}
+	})
+}
+
+func BenchmarkReadSkipMapUint(b *testing.B) {
+	m := setupSkipMap(b)
+	b.ResetTimer()
+
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			for i := uint64(0); i < benchmarkItemCount; i++ {
+				j, _ := m.Load(i)
+				if j != i {
+					b.Fail()
 				}
 			}
 		}
