@@ -177,13 +177,14 @@ var xxHashQword = func(key uint64) uintptr {
 
 var xxHashString = func(key string) uintptr {
 	sh := (*reflect.StringHeader)(unsafe.Pointer(&key))
-	bh := reflect.SliceHeader{
-		Data: sh.Data,
-		Len:  sh.Len,
-		Cap:  sh.Len, // cap needs to be set, otherwise xxhash fails on ARM Macs
-	}
 
-	b := *(*[]byte)(unsafe.Pointer(&bh))
+	// lint issue possible to missuse reflect.SliceHeader
+	var b []byte
+	bh := (*reflect.SliceHeader)(unsafe.Pointer(&b))
+	bh.Data = sh.Data
+	bh.Cap = sh.Len
+	bh.Len = sh.Len
+
 	var h uint64
 
 	if sh.Len >= 32 {

@@ -118,9 +118,8 @@ func (l *List[Key, Value]) insertAt(element, left, right *ListElement[Key, Value
 
 	element.next.Store(right)
 
-	if !left.next.CompareAndSwap(right, element) {
-		return false // item was modified concurrently
-	}
+	// issue: https://github.com/cornelk/hashmap/issues/67
+	left.next.CompareAndSwap(right, element)
 
 	l.count.Add(1)
 	return true
