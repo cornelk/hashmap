@@ -5,10 +5,12 @@ lint: ## run code linters
 	golangci-lint run
 
 benchmark: ## run benchmarks
-	cd benchmarks && perflock go test -cpu 8 -run=^# -bench=.
+	cd benchmarks && go test -cpu 8 -run=^# -bench=.
 
 benchmark-perflock: ## run benchmarks using perflock - https://github.com/aclements/perflock
-	cd benchmarks && perflock -governor 80% go test -count 3 -cpu 8 -run=^# -bench=.
+	go install golang.org/x/perf/cmd/benchstat@latest
+	cd benchmarks && perflock -governor 80% go test -count 3 -cpu 8 -run=^# -bench=. | tee .bench.output
+	cd benchmarks && benchstat .bench.output
 
 test: ## run tests
 	go test -race ./...

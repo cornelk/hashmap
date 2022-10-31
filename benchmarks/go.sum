@@ -1,8 +1,14 @@
-github.com/alphadose/haxmap v0.3.1 h1:P02INS0xIwY0R3E+KRJTPtrlwTvRPYoU2GgoeRk2KbU=
-github.com/alphadose/haxmap v0.3.1/go.mod h1:Fu37Wlmj7cR++vSLgRTu3fGy8wpjHGmMypM2aclkc1A=
 github.com/alphadose/haxmap v0.3.2-0.20220906124448-c6ee4c0e1f5d h1:GbecHhDTEKKpycM5JxYyplhaDV8RQNDWfy1vr9B8ETw=
 github.com/alphadose/haxmap v0.3.2-0.20220906124448-c6ee4c0e1f5d/go.mod h1:Fu37Wlmj7cR++vSLgRTu3fGy8wpjHGmMypM2aclkc1A=
+github.com/alphadose/haxmap v1.1.0 h1:M7Dxdr+civMQkWCgDpoktNpLofDBz7XzdS3rF3Y6r4U=
+github.com/alphadose/haxmap v1.1.0/go.mod h1:Pq2IXbl9/ytYHfrIAd7rIVtZQ2ezdIhZfvdqOizDeWY=
+github.com/puzpuzpuz/xsync v1.5.2 h1:yRAP4wqSOZG+/4pxJ08fPTwrfL0IzE/LKQ/cw509qGY=
+github.com/puzpuzpuz/xsync v1.5.2/go.mod h1:K98BYhX3k1dQ2M63t1YNVDanbwUPmBCAhNmVrrxfiGg=
 github.com/zhangyunhao116/fastrand v0.2.1 h1:H5FygwAWuYF7IqJKrdWBbphgHffRC07okNQjT2qbGB4=
 github.com/zhangyunhao116/fastrand v0.2.1/go.mod h1:0v5KgHho0VE6HU192HnY15de/oDS8UrbBChIFjIhBtc=
+github.com/zhangyunhao116/fastrand v0.3.0 h1:7bwe124xcckPulX6fxtr2lFdO2KQqaefdtbk+mqO/Ig=
+github.com/zhangyunhao116/fastrand v0.3.0/go.mod h1:0v5KgHho0VE6HU192HnY15de/oDS8UrbBChIFjIhBtc=
 github.com/zhangyunhao116/skipmap v0.9.1 h1:w9ei+cnzgl6TodHGDk+VXurlZfIonyB8X5mpjArAzd8=
 github.com/zhangyunhao116/skipmap v0.9.1/go.mod h1:lr61q2jYDJMUFuSivumPxAJxygEkwXfSfIocXu6Qqxg=
+github.com/zhangyunhao116/skipmap v0.10.1 h1:CMH4yGZQESBM1kUNozQqQ+Ra2pKqwF3HxaTADOaIfPs=
+github.com/zhangyunhao116/skipmap v0.10.1/go.mod h1:CClnLPHl3DI+hHgrcy0OZ/QJ45AWgA3ObVcQyJop12c=

@@ -47,30 +47,31 @@ Reading from the hash map for numeric key types in a thread-safe way is faster t
 in an unsafe way and four times faster than Golang's `sync.Map`:
 
 ```
-BenchmarkReadHashMapUint-8                	 1799533	       671.2 ns/op
-BenchmarkReadHaxMapUint-8                 	 1742451	       684.2 ns/op (buggy, can deadlock on write)
-BenchmarkReadGoMapUintUnsafe-8            	 1652151	       727.5 ns/op
-BenchmarkReadGoMapUintMutex-8             	   40504	     29700 ns/op
-BenchmarkReadGoSyncMapUint-8              	  455295	      2617 ns/op
-BenchmarkReadSkipMapUint-8                	  462244	      3629 ns/op
+ReadHashMapUint-8                676ns ± 0%
+ReadHaxMapUint-8                 689ns ± 1%
+ReadGoMapUintUnsafe-8            792ns ± 0%
+ReadXsyncMapUint-8               954ns ± 0%
+ReadGoSyncMapUint-8             2.62µs ± 1%
+ReadSkipMapUint-8               3.27µs ±10%
+ReadGoMapUintMutex-8            29.6µs ± 2%
 ```
 
 Reading from the map while writes are happening:
 ```
-BenchmarkReadHashMapWithWritesUint-8      	 1390100	       858.0 ns/op
-BenchmarkReadHaxMapWithWritesUint-8       	 1299464	       932.4 ns/op (buggy, can deadlock on write)
-BenchmarkReadGoSyncMapWithWritesUint-8    	  379136	      3171 ns/op
+ReadHashMapWithWritesUint-8      860ns ± 1%
+ReadHaxMapWithWritesUint-8       930ns ± 1%
+ReadGoSyncMapWithWritesUint-8   3.06µs ± 2%
 ```
 
 Write performance without any concurrent reads:
 
 ```
-BenchmarkWriteHashMapUint-8               	   52714	     22404 ns/op
-BenchmarkWriteGoMapMutexUint-8            	   79504	     14680 ns/op
-BenchmarkWriteGoSyncMapUint-8             	   17625	     67081 ns/op
+WriteGoMapMutexUint-8           14.8µs ± 2%
+WriteHashMapUint-8              22.3µs ± 1%
+WriteGoSyncMapUint-8            69.3µs ± 0%
 ```
 
-The benchmarks were run with Golang 1.19.1 on Linux and AMD64 using `make benchmark`.
+The benchmarks were run with Golang 1.19.1 on Linux and a Ryzen 9 5900X CPU using `make benchmark-perflock`.
 
 ## Technical details
 

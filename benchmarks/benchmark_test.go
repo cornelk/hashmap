@@ -8,6 +8,7 @@ import (
 
 	"github.com/alphadose/haxmap"
 	"github.com/cornelk/hashmap"
+	"github.com/puzpuzpuz/xsync"
 	"github.com/zhangyunhao116/skipmap"
 )
 
@@ -23,7 +24,7 @@ func setupHashMap(b *testing.B) *hashmap.Map[uintptr, uintptr] {
 	return m
 }
 
-func setupHaxMap(b *testing.B) *haxmap.HashMap[uintptr, uintptr] {
+func setupHaxMap(b *testing.B) *haxmap.Map[uintptr, uintptr] {
 	b.Helper()
 
 	m := haxmap.New[uintptr, uintptr]()
@@ -37,6 +38,16 @@ func setupSkipMap(b *testing.B) *skipmap.Uint64Map[uint64] {
 	b.Helper()
 
 	m := skipmap.NewUint64[uint64]()
+	for i := uint64(0); i < benchmarkItemCount; i++ {
+		m.Store(i, i)
+	}
+	return m
+}
+
+func setupXsync(b *testing.B) *xsync.MapOf[uint64, uint64] {
+	b.Helper()
+
+	m := xsync.NewIntegerMapOf[uint64, uint64]()
 	for i := uint64(0); i < benchmarkItemCount; i++ {
 		m.Store(i, i)
 	}
@@ -187,6 +198,22 @@ func BenchmarkReadHaxMapWithWritesUint(b *testing.B) {
 					if j != i {
 						b.Fail()
 					}
+				}
+			}
+		}
+	})
+}
+
+func BenchmarkReadXsyncMapUint(b *testing.B) {
+	m := setupXsync(b)
+	b.ResetTimer()
+
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			for i := uint64(0); i < benchmarkItemCount; i++ {
+				j, _ := m.Load(i)
+				if j != i {
+					b.Fail()
 				}
 			}
 		}
