@@ -452,3 +452,38 @@ func TestConcurrentInsertDelete(t *testing.T) {
 		assert.True(t, found != nil)
 	}
 }
+
+func TestGetOrInsert(t *testing.T) {
+	t.Parallel()
+	m := New[int, string]()
+	value, ok := m.GetOrInsert(1, "1")
+	assert.False(t, ok)
+	assert.Equal(t, "1", value)
+
+	value, ok = m.GetOrInsert(1, "2")
+	assert.True(t, ok)
+	assert.Equal(t, "1", value)
+}
+
+func TestGetOrInsertHangIssue67(t *testing.T) {
+	m := New[string, int]()
+
+	var wg sync.WaitGroup
+	key := "key"
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		m.GetOrInsert(key, 9)
+		m.Del(key)
+	}()
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		m.GetOrInsert(key, 9)
+		m.Del(key)
+	}()
+
+	wg.Wait()
+}

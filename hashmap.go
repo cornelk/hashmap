@@ -61,34 +61,38 @@ func (m *Map[Key, Value]) Get(key Key) (Value, bool) {
 
 // GetOrInsert returns the existing value for the key if present.
 // Otherwise, it stores and returns the given value.
-// The returned bool is true if the value was loaded, false if stored.
+// The returned bool is true if the key existed, false if inserted.
 func (m *Map[Key, Value]) GetOrInsert(key Key, value Value) (Value, bool) {
 	hash := m.hasher(key)
-	var newElement *ListElement[Key, Value]
+	var (
+		existed, inserted bool
+		element           *ListElement[Key, Value]
+	)
 
 	for {
-		for element := m.store.Load().item(hash); element != nil; element = element.Next() {
-			if element.keyHash == hash && element.key == key {
-				actual := element.Value()
-				return actual, true
-			}
+		store := m.store.Load()
+		searchStart := store.item(hash)
 
-			if element.keyHash > hash {
-				break
+		if !inserted { // if retrying after insert during grow, do not add to list again
+			element, existed, inserted = m.linkedList.Add(searchStart, hash, key, value)
+			if existed {
+				return element.Value(), true
+			}
+			if !inserted {
+				continue // a concurrent add did interfere, try again
 			}
 		}
 
-		if newElement == nil { // allocate only once
-			newElement = &ListElement[Key, Value]{
-				key:     key,
-				keyHash: hash,
-			}
-			newElement.value.Store(&value)
+		count := store.addItem(element)
+		currentStore := m.store.Load()
+		if store != currentStore { // retry insert in case of insert during grow
+			continue
 		}
 
-		if m.insertElement(newElement, hash, key, value) {
-			return value, false
+		if m.isResizeNeeded(store, count) && m.resizing.CompareAndSwap(0, 1) {
+			go m.grow(0, true)
 		}
+		return value, false
 	}
 }
 
@@ -240,37 +244,6 @@ func (m *Map[Key, Value]) isResizeNeeded(store *store[Key, Value], count uintptr
 	l := uintptr(len(store.index)) // l can't be 0 as it gets initialized in New()
 	fillRate := (count * 100) / l
 	return fillRate > maxFillRate
-}
-
-func (m *Map[Key, Value]) insertElement(element *ListElement[Key, Value], hash uintptr, key Key, value Value) bool {
-	var existed, inserted bool
-
-	for {
-		store := m.store.Load()
-		searchStart := store.item(element.keyHash)
-
-		if !inserted { // if retrying after insert during grow, do not add to list again
-			_, existed, inserted = m.linkedList.Add(searchStart, hash, key, value)
-			if existed {
-				return false
-			}
-
-			if !inserted {
-				continue // a concurrent add did interfere, try again
-			}
-		}
-
-		count := store.addItem(element)
-		currentStore := m.store.Load()
-		if store != currentStore { // retry insert in case of insert during grow
-			continue
-		}
-
-		if m.isResizeNeeded(store, count) && m.resizing.CompareAndSwap(0, 1) {
-			go m.grow(0, true)
-		}
-		return true
-	}
 }
 
 // deleteElement deletes an element from index.
