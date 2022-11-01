@@ -7,7 +7,7 @@ replace github.com/cornelk/hashmap => ../
 require (
 	github.com/alphadose/haxmap v1.1.0
 	github.com/cornelk/hashmap v1.0.8
-	github.com/puzpuzpuz/xsync v1.5.2
+	github.com/puzpuzpuz/xsync/v2 v2.3.1
 	github.com/zhangyunhao116/skipmap v0.10.1
 )
 
