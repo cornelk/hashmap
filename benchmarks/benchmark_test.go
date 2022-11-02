@@ -8,7 +8,7 @@ import (
 
 	"github.com/alphadose/haxmap"
 	"github.com/cornelk/hashmap"
-	"github.com/puzpuzpuz/xsync"
+	"github.com/puzpuzpuz/xsync/v2"
 	"github.com/zhangyunhao116/skipmap"
 )
 
@@ -214,6 +214,32 @@ func BenchmarkReadXsyncMapUint(b *testing.B) {
 				j, _ := m.Load(i)
 				if j != i {
 					b.Fail()
+				}
+			}
+		}
+	})
+}
+
+func BenchmarkReadXsyncMapWithWritesUint(b *testing.B) {
+	m := setupXsync(b)
+	var writer uintptr
+	b.ResetTimer()
+
+	b.RunParallel(func(pb *testing.PB) {
+		// use 1 thread as writer
+		if atomic.CompareAndSwapUintptr(&writer, 0, 1) {
+			for pb.Next() {
+				for i := uint64(0); i < benchmarkItemCount; i++ {
+					m.Store(i, i)
+				}
+			}
+		} else {
+			for pb.Next() {
+				for i := uint64(0); i < benchmarkItemCount; i++ {
+					j, _ := m.Load(i)
+					if j != i {
+						b.Fail()
+					}
 				}
 			}
 		}
