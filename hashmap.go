@@ -18,6 +18,7 @@ type Map[Key hashable, Value any] struct {
 	// resizing marks a resizing operation in progress.
 	// this is using uintptr instead of atomic.Bool to avoid using 32 bit int on 64 bit systems
 	resizing atomic.Uintptr
+	growChan chan grow
 }
 
 // New returns a new map instance.
@@ -28,8 +29,10 @@ func New[Key hashable, Value any]() *Map[Key, Value] {
 // NewSized returns a new map instance with a specific initialization size.
 func NewSized[Key hashable, Value any](size uintptr) *Map[Key, Value] {
 	m := &Map[Key, Value]{}
+	m.growChan = make(chan grow, 1024)
 	m.allocate(size)
 	m.setDefaultHasher()
+	go m.threadGrow()
 	return m
 }
 
@@ -90,7 +93,7 @@ func (m *Map[Key, Value]) GetOrInsert(key Key, value Value) (Value, bool) {
 		}
 
 		if m.isResizeNeeded(store, count) && m.resizing.CompareAndSwap(0, 1) {
-			go m.grow(0, true)
+			m.addGrow(0, true)
 		}
 		return value, false
 	}
@@ -156,7 +159,7 @@ func (m *Map[Key, Value]) Insert(key Key, value Value) bool {
 		}
 
 		if m.isResizeNeeded(store, count) && m.resizing.CompareAndSwap(0, 1) {
-			go m.grow(0, true)
+			m.addGrow(0, true)
 		}
 		return true
 	}
@@ -184,7 +187,7 @@ func (m *Map[Key, Value]) Set(key Key, value Value) {
 		}
 
 		if m.isResizeNeeded(store, count) && m.resizing.CompareAndSwap(0, 1) {
-			go m.grow(0, true)
+			m.addGrow(0, true)
 		}
 		return
 	}
@@ -196,7 +199,7 @@ func (m *Map[Key, Value]) Set(key Key, value Value) {
 // No resizing is done in case of another resize operation already being in progress.
 func (m *Map[Key, Value]) Grow(newSize uintptr) {
 	if m.resizing.CompareAndSwap(0, 1) {
-		go m.grow(newSize, true)
+		m.addGrow(newSize, true)
 	}
 }
 
@@ -302,6 +305,20 @@ func (m *Map[Key, Value]) grow(newSize uintptr, loop bool) {
 			return
 		}
 		newSize = 0 // 0 means double the current size
+	}
+}
+
+func (m *Map[Key, Value]) addGrow(newSize uintptr, loop bool) {
+	m.growChan <- grow{newSize: newSize, loop: loop}
+}
+
+func (m *Map[Key, Value]) threadGrow() {
+	var g grow
+	for {
+		select {
+		case g = <-m.growChan:
+			m.grow(g.newSize, g.loop)
+		}
 	}
 }
 
