@@ -465,7 +465,7 @@ func TestGetOrInsert(t *testing.T) {
 	assert.Equal(t, "1", value)
 }
 
-func TestGetOrInsertHangIssue67(t *testing.T) {
+func TestGetOrInsertHangIssue67(_ *testing.T) {
 	m := New[string, int]()
 
 	var wg sync.WaitGroup
