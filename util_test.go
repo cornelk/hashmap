@@ -25,7 +25,7 @@ func TestLog2(t *testing.T) {
 func TestHashCollision(t *testing.T) {
 	m := New[string, int]()
 
-	staticHasher := func(key string) uintptr {
+	staticHasher := func(_ string) uintptr {
 		return 4 // chosen by fair dice roll. guaranteed to be random.
 	}
 

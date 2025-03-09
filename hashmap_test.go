@@ -1,6 +1,7 @@
 package hashmap
 
 import (
+	"errors"
 	"fmt"
 	"math"
 	"math/rand"
@@ -298,10 +299,10 @@ func TestRange(t *testing.T) {
 func TestHashMap_parallel(t *testing.T) {
 	m := New[int, int]()
 
-	max := 10
+	maxVal := 10
 	dur := 2 * time.Second
 
-	do := func(t *testing.T, max int, d time.Duration, fn func(*testing.T, int)) <-chan error {
+	do := func(t *testing.T, maxVal int, d time.Duration, fn func(*testing.T, int)) <-chan error {
 		t.Helper()
 		done := make(chan error)
 		var times int64
@@ -311,7 +312,7 @@ func TestHashMap_parallel(t *testing.T) {
 				select {
 				case <-time.After(d + 500*time.Millisecond):
 					if atomic.LoadInt64(&times) == 0 {
-						done <- fmt.Errorf("closure was not executed even once, something blocks it")
+						done <- errors.New("closure was not executed even once, something blocks it")
 					}
 					close(done)
 				case <-done:
@@ -323,7 +324,7 @@ func TestHashMap_parallel(t *testing.T) {
 			defer timer.Stop()
 		InfLoop:
 			for {
-				for i := 0; i < max; i++ {
+				for i := 0; i < maxVal; i++ {
 					select {
 					case <-timer.C:
 						break InfLoop
@@ -346,15 +347,15 @@ func TestHashMap_parallel(t *testing.T) {
 	}
 
 	// Initial fill.
-	for i := 0; i < max; i++ {
+	for i := 0; i < maxVal; i++ {
 		m.Set(i, i)
 	}
 	t.Run("set_get", func(t *testing.T) {
-		doneSet := do(t, max, dur, func(t *testing.T, i int) {
+		doneSet := do(t, maxVal, dur, func(t *testing.T, i int) {
 			t.Helper()
 			m.Set(i, i)
 		})
-		doneGet := do(t, max, dur, func(t *testing.T, i int) {
+		doneGet := do(t, maxVal, dur, func(t *testing.T, i int) {
 			t.Helper()
 			if _, ok := m.Get(i); !ok {
 				t.Errorf("missing value for key: %d", i)
@@ -364,11 +365,11 @@ func TestHashMap_parallel(t *testing.T) {
 		wait(t, doneGet)
 	})
 	t.Run("get-or-insert-and-delete", func(t *testing.T) {
-		doneGetOrInsert := do(t, max, dur, func(t *testing.T, i int) {
+		doneGetOrInsert := do(t, maxVal, dur, func(t *testing.T, i int) {
 			t.Helper()
 			m.GetOrInsert(i, i)
 		})
-		doneDel := do(t, max, dur, func(t *testing.T, i int) {
+		doneDel := do(t, maxVal, dur, func(t *testing.T, i int) {
 			t.Helper()
 			m.Del(i)
 		})

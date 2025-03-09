@@ -33,7 +33,7 @@ func fail(t *testing.T, message string, errorMessage ...string) {
 	if len(errorMessage) != 0 {
 		message = fmt.Sprintf("%s\n%s", message, errorMessage)
 	}
-	t.Errorf(message)
+	t.Error(message)
 	t.FailNow()
 }
 
