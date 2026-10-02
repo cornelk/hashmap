@@ -51,7 +51,7 @@ func (m *Map[Key, Value]) setDefaultHasher() {
 	kind := reflect.ValueOf(&key).Elem().Type().Kind()
 
 	switch kind {
-	case reflect.Int, reflect.Uint, reflect.Uintptr:
+	case reflect.Int, reflect.Uint, reflect.Uintptr, reflect.Pointer, reflect.UnsafePointer:
 		switch intSizeBytes {
 		case 2:
 			m.hasher = *(*func(Key) uintptr)(unsafe.Pointer(&xxHashWord))
