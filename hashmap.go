@@ -48,6 +48,10 @@ func (m *Map[Key, Value]) Get(key Key) (Value, bool) {
 	hash := m.hasher(key)
 
 	for element := m.store.Load().item(hash); element != nil; element = element.Next() {
+		if element.deleted.Load() != 0 {
+			continue
+		}
+
 		if element.keyHash == hash && element.key == key {
 			return element.Value(), true
 		}

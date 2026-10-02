@@ -482,3 +482,27 @@ func TestGetOrInsertHangIssue67(_ *testing.T) {
 
 	wg.Wait()
 }
+
+func TestGetOrInsertConcurrentIssue81(t *testing.T) {
+	m := New[int, bool]()
+	var wg sync.WaitGroup
+	n := 1000
+
+	for i := 0; i < n; i++ {
+		wg.Add(1)
+		go func(val int) {
+			defer wg.Done()
+			m.GetOrInsert(val, true)
+		}(i)
+	}
+	wg.Wait()
+
+	count := 0
+	m.Range(func(key int, value bool) bool {
+		count++
+		return true
+	})
+
+	assert.Equal(t, n, count)
+	assert.Equal(t, uintptr(n), m.Len())
+}
