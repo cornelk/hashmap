@@ -10,6 +10,7 @@ import (
 	"sync/atomic"
 	"testing"
 	"time"
+	"unsafe"
 
 	"github.com/cornelk/hashmap/assert"
 )
@@ -481,4 +482,81 @@ func TestGetOrInsertHangIssue67(_ *testing.T) {
 	}()
 
 	wg.Wait()
+}
+
+func TestSetPointer(t *testing.T) {
+	t.Parallel()
+
+	type item struct {
+		name string
+	}
+
+	m := New[*item, string]()
+	foo := &item{name: "foo"}
+	bar := &item{name: "bar"}
+	sameDataDifferentPtr := &item{name: "foo"}
+
+	m.Set(foo, "elephant") // insert
+	value, ok := m.Get(foo)
+	assert.True(t, ok)
+	assert.Equal(t, "elephant", value)
+
+	// verify pointer identity: same data at different address is not found
+	value, ok = m.Get(sameDataDifferentPtr)
+	assert.False(t, ok)
+	assert.Equal(t, "", value)
+
+	m.Set(foo, "monkey") // overwrite
+	value, ok = m.Get(foo)
+	assert.True(t, ok)
+	assert.Equal(t, "monkey", value)
+	assert.Equal(t, 1, m.Len())
+
+	m.Set(bar, "elephant") // insert second item
+	assert.Equal(t, 2, m.Len())
+	value, ok = m.Get(bar)
+	assert.True(t, ok)
+	assert.Equal(t, "elephant", value)
+
+	m.Del(foo)
+	assert.Equal(t, 1, m.Len())
+	_, ok = m.Get(foo)
+	assert.False(t, ok)
+	value, ok = m.Get(bar)
+	assert.True(t, ok)
+	assert.Equal(t, "elephant", value)
+
+	// test nil pointer key
+	var nilKey *item
+	m.Set(nilKey, "giraffe")
+	value, ok = m.Get(nilKey)
+	assert.True(t, ok)
+	assert.Equal(t, "giraffe", value)
+	assert.Equal(t, 2, m.Len())
+}
+
+func TestSetUnsafePointer(t *testing.T) {
+	t.Parallel()
+
+	m := New[unsafe.Pointer, int]()
+	val1 := 10
+	val2 := 20
+	ptr1 := unsafe.Pointer(&val1)
+	ptr2 := unsafe.Pointer(&val2)
+
+	m.Set(ptr1, 100)
+	value, ok := m.Get(ptr1)
+	assert.True(t, ok)
+	assert.Equal(t, 100, value)
+
+	m.Set(ptr2, 200)
+	assert.Equal(t, 2, m.Len())
+	value, ok = m.Get(ptr2)
+	assert.True(t, ok)
+	assert.Equal(t, 200, value)
+
+	m.Del(ptr1)
+	assert.Equal(t, 1, m.Len())
+	_, ok = m.Get(ptr1)
+	assert.False(t, ok)
 }

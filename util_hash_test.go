@@ -4,6 +4,7 @@ package hashmap
 
 import (
 	"testing"
+	"unsafe"
 
 	"github.com/cornelk/hashmap/assert"
 )
@@ -42,4 +43,20 @@ func TestHashingString(t *testing.T) {
 	m := New[string, uint8]()
 	assert.Equal(t, uintptr(0x6a1faf26e7da4cb9), m.hasher("properunittesting"))
 	assert.Equal(t, uintptr(0x2d4ff7e12135f1f3), m.hasher("longstringlongstringlongstringlongstring"))
+}
+
+func TestHashingPointer(t *testing.T) {
+	m := New[*uintptr, uintptr]()
+	var val uintptr = 42
+	ptr := &val
+	expected := xxHashQword(uint64(uintptr(unsafe.Pointer(ptr))))
+	assert.Equal(t, expected, m.hasher(ptr))
+}
+
+func TestHashingUnsafePointer(t *testing.T) {
+	m := New[unsafe.Pointer, uintptr]()
+	var val uintptr = 42
+	ptr := unsafe.Pointer(&val)
+	expected := xxHashQword(uint64(uintptr(ptr)))
+	assert.Equal(t, expected, m.hasher(ptr))
 }
