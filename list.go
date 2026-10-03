@@ -76,7 +76,7 @@ func (l *List[Key, Value]) Delete(element *ListElement[Key, Value]) {
 }
 
 func (l *List[Key, Value]) search(searchStart *ListElement[Key, Value], hash uintptr, key Key) (left, found, right *ListElement[Key, Value]) {
-	if searchStart != nil && hash < searchStart.keyHash { // key would remain left from item? {
+	if searchStart != nil && (hash < searchStart.keyHash || searchStart.deleted.Load() != 0) { // key would remain left from item or item deleted?
 		searchStart = nil // start search at head
 	}
 
@@ -92,7 +92,9 @@ func (l *List[Key, Value]) search(searchStart *ListElement[Key, Value], hash uin
 
 	for {
 		if hash == found.keyHash && key == found.key { // key hash already exists, compare keys
-			return nil, found, nil
+			if found.deleted.Load() == 0 {
+				return nil, found, nil
+			}
 		}
 
 		if hash < found.keyHash { // new item needs to be inserted before the found value
@@ -116,10 +118,19 @@ func (l *List[Key, Value]) insertAt(element, left, right *ListElement[Key, Value
 		left = l.head
 	}
 
+	if left != l.head && left.deleted.Load() != 0 {
+		return false // left was deleted concurrently
+	}
+
 	element.next.Store(right)
 
 	if !left.next.CompareAndSwap(right, element) {
 		return false // item was modified concurrently
+	}
+
+	if left != l.head && left.deleted.Load() != 0 {
+		element.deleted.Store(1)
+		return false // left was deleted concurrently
 	}
 
 	l.count.Add(1)
