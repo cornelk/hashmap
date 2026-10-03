@@ -488,7 +488,7 @@ func TestGetOrInsertConcurrentIssue81(t *testing.T) {
 	var wg sync.WaitGroup
 	n := 1000
 
-	for i := 0; i < n; i++ {
+	for i := range n {
 		wg.Add(1)
 		go func(val int) {
 			defer wg.Done()
@@ -498,7 +498,7 @@ func TestGetOrInsertConcurrentIssue81(t *testing.T) {
 	wg.Wait()
 
 	count := 0
-	m.Range(func(key int, value bool) bool {
+	m.Range(func(_ int, value bool) bool {
 		count++
 		return true
 	})
